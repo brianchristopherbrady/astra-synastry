@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: astro
+      POSTGRES_PASSWORD: astro
+      POSTGRES_DB: astrology
+    ports:
+      - "5433:5432"
+    volumes:
+      - astro_pg_data:/var/lib/postgresql/data
+
+volumes:
+  astro_pg_data:

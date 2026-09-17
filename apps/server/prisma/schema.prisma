@@ -1,0 +1,55 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Person {
+  id            String   @id @default(cuid())
+  name          String
+  localDateTime String
+  timezone      String
+  latitude      Float
+  longitude     Float
+  locationName  String
+  timeUnknown   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  charts        Chart[]
+  synastryAsA   SynastryReport[] @relation("SynastryPersonA")
+  synastryAsB   SynastryReport[] @relation("SynastryPersonB")
+}
+
+model Chart {
+  id                 String   @id @default(cuid())
+  personId           String
+  person             Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  houseSystem        String
+  dataJson           String // JSON-serialized ChartData (SQLite has no native Json column type)
+  aiProvider         String?
+  aiAnalysisMarkdown String?
+  aiPromptVersion    String?
+  computedAt         DateTime @default(now())
+
+  @@unique([personId, houseSystem])
+}
+
+model SynastryReport {
+  id                 String   @id @default(cuid())
+  personAId          String
+  personA            Person   @relation("SynastryPersonA", fields: [personAId], references: [id], onDelete: Cascade)
+  personBId          String
+  personB            Person   @relation("SynastryPersonB", fields: [personBId], references: [id], onDelete: Cascade)
+  houseSystem        String
+  dataJson           String // JSON-serialized SynastryData (SQLite has no native Json column type)
+  aiProvider         String?
+  aiAnalysisMarkdown String?
+  aiPromptVersion    String?
+  createdAt          DateTime @default(now())
+
+  @@unique([personAId, personBId, houseSystem])
+}
+

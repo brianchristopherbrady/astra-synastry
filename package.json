@@ -1,0 +1,24 @@
+{
+  "name": "astrology-synastry",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:server": "pnpm --filter @astro/server dev",
+    "dev:web": "pnpm --filter @astro/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:migrate": "pnpm --filter @astro/server prisma:migrate",
+    "db:up": "docker compose up -d postgres"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^8.57.1",
+    "prettier": "^3.3.3"
+  }
+}

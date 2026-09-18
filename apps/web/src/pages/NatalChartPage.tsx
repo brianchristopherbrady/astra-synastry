@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ALL_POINTS, POINT_LABELS } from "@astro/shared";
-import type { PointName } from "@astro/shared";
+import type { Ayanamsa, HellenisticProfile, PointName, ZodiacMode } from "@astro/shared";
 import { chartsApi, type ChartRecord } from "../api/chartsApi.js";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { ChartWheel } from "../components/chart/ChartWheel.js";
@@ -20,6 +20,14 @@ import { AppHeader } from "../components/layout/AppHeader.js";
 import { computeChartBalance } from "../lib/chartBalance.js";
 import { setLastChart } from "../lib/lastChart.js";
 
+const AYANAMSA_OPTIONS: { value: Ayanamsa; label: string }[] = [
+  { value: "lahiri", label: "Lahiri" },
+  { value: "raman", label: "Raman" },
+  { value: "krishnamurti", label: "Krishnamurti" },
+  { value: "fagan_bradley", label: "Fagan-Bradley" },
+  { value: "yukteshwar", label: "Yukteshwar" },
+];
+
 export default function NatalChartPage() {
   const { personId } = useParams<{ personId: string }>();
   const [chart, setChart] = useState<ChartRecord | null>(null);
@@ -29,17 +37,28 @@ export default function NatalChartPage() {
   const [insightTarget, setInsightTarget] = useState<BalanceInsightTarget | null>(null);
   const [pointTarget, setPointTarget] = useState<PointName | null>(null);
   const [houseTarget, setHouseTarget] = useState<number | null>(null);
+  const [zodiacMode, setZodiacMode] = useState<ZodiacMode>("tropical");
+  const [ayanamsa, setAyanamsa] = useState<Ayanamsa>("lahiri");
+  const [hellenistic, setHellenistic] = useState<HellenisticProfile | null>(null);
 
   useEffect(() => {
     if (!personId) return;
-    Promise.all([chartsApi.get(personId), peopleApi.get(personId)])
+    Promise.all([chartsApi.get(personId, { zodiacMode, ayanamsa }), peopleApi.get(personId)])
       .then(([chartResult, personResult]) => {
         setChart(chartResult);
         setPerson(personResult);
         setLastChart(`/chart/${personId}`);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load chart"));
-  }, [personId]);
+  }, [personId, zodiacMode, ayanamsa]);
+
+  useEffect(() => {
+    if (!personId) return;
+    chartsApi
+      .hellenistic(personId, undefined, { zodiacMode, ayanamsa })
+      .then(setHellenistic)
+      .catch(() => setHellenistic(null));
+  }, [personId, zodiacMode, ayanamsa]);
 
   function togglePoint(point: PointName): void {
     setHiddenPoints((prev) => {
@@ -73,7 +92,39 @@ export default function NatalChartPage() {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <AppHeader />
-      <h1 className="mb-4 text-2xl font-bold text-stardust">Natal Chart Reading</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-stardust">Natal Chart Reading</h1>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-xs uppercase tracking-wide text-slate-400">Zodiac</span>
+          <div className="flex overflow-hidden rounded border border-slate-600">
+            <button
+              onClick={() => setZodiacMode("tropical")}
+              className={`px-3 py-1 ${zodiacMode === "tropical" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+            >
+              Tropical
+            </button>
+            <button
+              onClick={() => setZodiacMode("sidereal")}
+              className={`px-3 py-1 ${zodiacMode === "sidereal" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+            >
+              Sidereal
+            </button>
+          </div>
+          {zodiacMode === "sidereal" && (
+            <select
+              value={ayanamsa}
+              onChange={(e) => setAyanamsa(e.target.value as Ayanamsa)}
+              className="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200"
+            >
+              {AYANAMSA_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
       <div className="mb-6">
         <KeyPlacementsSummary chart={chart} personName={personName} onSelect={setPointTarget} />
       </div>
@@ -148,6 +199,47 @@ export default function NatalChartPage() {
               )}
             </section>
           </div>
+
+          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold">Hellenistic techniques</h2>
+              <Link to="/wiki#terms" className="text-xs text-aurora hover:underline">
+                What is this?
+              </Link>
+            </div>
+            {hellenistic ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <h3 className="mb-1 text-sm font-semibold text-stardust">
+                    Sect: <span className="capitalize text-aurora">{hellenistic.sect.sect} chart</span>
+                  </h3>
+                  <ul className="space-y-0.5 text-sm text-slate-300">
+                    <li>Luminary of sect: <span className="capitalize">{POINT_LABELS[hellenistic.sect.sectLight]}</span></li>
+                    <li>Benefic of sect: <span className="capitalize">{POINT_LABELS[hellenistic.sect.benefic]}</span></li>
+                    <li>Malefic of sect: <span className="capitalize">{POINT_LABELS[hellenistic.sect.malefic]}</span></li>
+                    <li>Contrary-to-sect benefic: <span className="capitalize">{POINT_LABELS[hellenistic.sect.contraryBenefic]}</span></li>
+                    <li>Contrary-to-sect malefic: <span className="capitalize">{POINT_LABELS[hellenistic.sect.contraryMalefic]}</span></li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="mb-1 text-sm font-semibold text-stardust">Classical lots</h3>
+                  <ul className="space-y-0.5 text-sm text-slate-300">
+                    {hellenistic.lots.map((lot) => (
+                      <li key={lot.name}>
+                        {lot.label}: <span className="capitalize">{lot.sign}</span>{" "}
+                        {`${lot.signDegree.toFixed(1)}\u00b0`}
+                        {lot.house ? ` (house ${lot.house})` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">
+                Hellenistic techniques require a known birth time (Ascendant &amp; houses).
+              </p>
+            )}
+          </section>
 
           <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4 text-center">
             <h2 className="mb-1 text-lg font-semibold">Current transits &amp; secondary progressions</h2>

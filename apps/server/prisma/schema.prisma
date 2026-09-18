@@ -28,13 +28,15 @@ model Chart {
   personId           String
   person             Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   houseSystem        String
+  zodiacMode         String   @default("tropical")
+  ayanamsa           String   @default("lahiri")
   dataJson           String // JSON-serialized ChartData (SQLite has no native Json column type)
   aiProvider         String?
   aiAnalysisMarkdown String?
   aiPromptVersion    String?
   computedAt         DateTime @default(now())
 
-  @@unique([personId, houseSystem])
+  @@unique([personId, houseSystem, zodiacMode, ayanamsa])
 }
 
 model SynastryReport {
@@ -44,12 +46,18 @@ model SynastryReport {
   personBId          String
   personB            Person   @relation("SynastryPersonB", fields: [personBId], references: [id], onDelete: Cascade)
   houseSystem        String
+  zodiacMode         String   @default("tropical")
+  ayanamsa           String   @default("lahiri")
   dataJson           String // JSON-serialized SynastryData (SQLite has no native Json column type)
+  relationshipType   String   @default("romantic")
+  readingStyle       String   @default("clever")
+  customStyleText    String   @default("")
+  archetypeName      String?
   aiProvider         String?
   aiAnalysisMarkdown String?
   aiPromptVersion    String?
   createdAt          DateTime @default(now())
 
-  @@unique([personAId, personBId, houseSystem])
+  @@unique([personAId, personBId, houseSystem, zodiacMode, ayanamsa, relationshipType, readingStyle, customStyleText])
 }
 

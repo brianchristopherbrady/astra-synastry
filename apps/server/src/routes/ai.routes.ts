@@ -8,6 +8,7 @@ import {
   buildNatalPrompt,
   buildSynastryChatContext,
   buildSynastryPrompt,
+  extractArchetype,
   PROMPT_VERSION,
 } from "../services/ai/prompt-builder.js";
 import { resolveProvider } from "../services/ai/ai.service.js";
@@ -60,28 +61,36 @@ aiRouter.post("/synastry/:id", aiRateLimiter, async (req, res, next) => {
     res.flushHeaders();
 
     if (!force && report.aiAnalysisMarkdown && report.aiProvider === providerName && report.aiPromptVersion === PROMPT_VERSION) {
-      res.write(`event: cached\ndata: ${JSON.stringify({ text: report.aiAnalysisMarkdown })}\n\n`);
+      res.write(`event: cached\ndata: ${JSON.stringify({ text: report.aiAnalysisMarkdown, archetypeName: report.archetypeName })}\n\n`);
       res.end();
       return;
     }
 
     const synastryData = JSON.parse(report.dataJson) as SynastryData;
-    const prompt = buildSynastryPrompt(synastryData, report.personA.name, report.personB.name);
+    const prompt = buildSynastryPrompt(
+      synastryData,
+      report.personA.name,
+      report.personB.name,
+      report.relationshipType as "romantic" | "friendship",
+      report.readingStyle as "clever" | "flirty" | "funny" | "mythic" | "brutal" | "other",
+      report.customStyleText,
+    );
     const aiProvider = resolveProvider(providerName);
 
     try {
-      const fullText = await aiProvider.streamCompletion([{ role: "user", content: prompt }], {
+      const rawText = await aiProvider.streamCompletion([{ role: "user", content: prompt }], {
         onToken: (token) => {
           res.write(`event: token\ndata: ${JSON.stringify({ token })}\n\n`);
         },
       });
+      const { archetypeName, body } = extractArchetype(rawText);
 
       await prisma.synastryReport.update({
         where: { id: report.id },
-        data: { aiAnalysisMarkdown: fullText, aiProvider: providerName, aiPromptVersion: PROMPT_VERSION },
+        data: { aiAnalysisMarkdown: body, aiProvider: providerName, aiPromptVersion: PROMPT_VERSION, archetypeName },
       });
 
-      res.write(`event: done\ndata: ${JSON.stringify({ text: fullText })}\n\n`);
+      res.write(`event: done\ndata: ${JSON.stringify({ text: body, archetypeName })}\n\n`);
       res.end();
     } catch (streamErr) {
       writeSseError(res, streamErr);
@@ -190,7 +199,14 @@ aiRouter.post("/synastry/:id/chat", aiRateLimiter, async (req, res, next) => {
 
     const providerName: AiProviderName = provider ?? "anthropic";
     const synastryData = JSON.parse(report.dataJson) as SynastryData;
-    const context = buildSynastryChatContext(synastryData, report.personA.name, report.personB.name);
+    const context = buildSynastryChatContext(
+      synastryData,
+      report.personA.name,
+      report.personB.name,
+      report.relationshipType as "romantic" | "friendship",
+      report.readingStyle as "clever" | "flirty" | "funny" | "mythic" | "brutal" | "other",
+      report.customStyleText,
+    );
     const aiProvider = resolveProvider(providerName);
 
     res.setHeader("Content-Type", "text/event-stream");

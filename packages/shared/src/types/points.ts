@@ -57,6 +57,15 @@ export type Modality = "cardinal" | "fixed" | "mutable";
 
 export type HouseSystem = "placidus" | "wholeSign" | "koch" | "equal" | "campanus" | "regiomontanus";
 
+/** Tropical is the modern Western standard (zodiac fixed to the equinoxes). Sidereal (used in Vedic/Jyotish
+ * astrology) is offset from tropical by the chosen ayanamsa — the precession-corrected distance between
+ * the tropical and sidereal zero points. */
+export type ZodiacMode = "tropical" | "sidereal";
+
+/** Named ayanamsa (precession correction) used when zodiacMode is "sidereal". Lahiri is the modern
+ * Indian government standard and the most common default. */
+export type Ayanamsa = "lahiri" | "raman" | "krishnamurti" | "fagan_bradley" | "yukteshwar";
+
 export type AspectName =
   | "conjunction"
   | "sextile"

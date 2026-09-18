@@ -1,5 +1,5 @@
 import sweph from "sweph";
-import type { PointName } from "@astro/shared";
+import type { Ayanamsa, PointName, ZodiacMode } from "@astro/shared";
 
 /**
  * Calculation precision mode.
@@ -21,6 +21,23 @@ export function configureEphemeris(opts: { mode?: EphemerisMode; ephePath?: stri
 
 export function baseEphemerisFlag(): number {
   return currentMode === "swiss" ? sweph.constants.SEFLG_SWIEPH : sweph.constants.SEFLG_MOSEPH;
+}
+
+const AYANAMSA_CODES: Record<Ayanamsa, number> = {
+  lahiri: sweph.constants.SE_SIDM_LAHIRI,
+  raman: sweph.constants.SE_SIDM_RAMAN,
+  krishnamurti: sweph.constants.SE_SIDM_KRISHNAMURTI,
+  fagan_bradley: sweph.constants.SE_SIDM_FAGAN_BRADLEY,
+  yukteshwar: sweph.constants.SE_SIDM_YUKTESHWAR,
+};
+
+/** Resolves the extra sweph iflag bit for the requested zodiac mode, setting the ayanamsa as a side
+ * effect when sidereal (Swiss Ephemeris tracks ayanamsa as global state, so this must be called again
+ * whenever the ayanamsa might differ from the previous calculation). Returns 0 for tropical. */
+export function zodiacFlag(mode: ZodiacMode, ayanamsa: Ayanamsa = "lahiri"): number {
+  if (mode === "tropical") return 0;
+  sweph.set_sid_mode(AYANAMSA_CODES[ayanamsa], 0, 0);
+  return sweph.constants.SEFLG_SIDEREAL;
 }
 
 const BODY_IDS: Partial<Record<PointName, number>> = {
@@ -63,12 +80,12 @@ export function utcToJulianDay(utcDate: Date): number {
   return result.data[1];
 }
 
-export function calcBody(point: PointName, tjdUt: number): RawBodyPosition {
+export function calcBody(point: PointName, tjdUt: number, extraFlags = 0): RawBodyPosition {
   const id = BODY_IDS[point];
   if (id === undefined) {
     throw new Error(`No ephemeris body mapping for point: ${point}`);
   }
-  const flags = baseEphemerisFlag() | sweph.constants.SEFLG_SPEED;
+  const flags = baseEphemerisFlag() | sweph.constants.SEFLG_SPEED | extraFlags;
   const result = sweph.calc_ut(tjdUt, id, flags);
   if (result.flag === sweph.constants.ERR) {
     throw new Error(`Ephemeris calculation failed for ${point}: ${result.error}`);

@@ -1,10 +1,27 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { PlaceSuggestion } from "@astro/shared";
+import type { Ayanamsa, PlaceSuggestion, ReadingStyle, RelationshipType, ZodiacMode } from "@astro/shared";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { synastryApi } from "../api/synastryApi.js";
 import { PlaceSearchInput } from "../components/forms/PlaceSearchInput.js";
 import { AppHeader } from "../components/layout/AppHeader.js";
+
+const READING_STYLES: { value: ReadingStyle; label: string }[] = [
+  { value: "clever", label: "Clever" },
+  { value: "flirty", label: "Flirty" },
+  { value: "funny", label: "Funny" },
+  { value: "mythic", label: "Mythic" },
+  { value: "brutal", label: "Brutal" },
+  { value: "other", label: "Other\u2026" },
+];
+
+const AYANAMSA_OPTIONS: { value: Ayanamsa; label: string }[] = [
+  { value: "lahiri", label: "Lahiri" },
+  { value: "raman", label: "Raman" },
+  { value: "krishnamurti", label: "Krishnamurti" },
+  { value: "fagan_bradley", label: "Fagan-Bradley" },
+  { value: "yukteshwar", label: "Yukteshwar" },
+];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -23,6 +40,11 @@ export default function DashboardPage() {
 
   const [personAId, setPersonAId] = useState("");
   const [personBId, setPersonBId] = useState("");
+  const [zodiacMode, setZodiacMode] = useState<ZodiacMode>("tropical");
+  const [ayanamsa, setAyanamsa] = useState<Ayanamsa>("lahiri");
+  const [relationshipType, setRelationshipType] = useState<RelationshipType>("romantic");
+  const [readingStyle, setReadingStyle] = useState<ReadingStyle>("clever");
+  const [customStyleText, setCustomStyleText] = useState("");
   const [generating, setGenerating] = useState(false);
 
   async function loadPeople(): Promise<void> {
@@ -74,7 +96,18 @@ export default function DashboardPage() {
     setGenerating(true);
     setError(null);
     try {
-      const report = await synastryApi.create({ personAId, personBId });
+      const report = await synastryApi.create({
+        personAId,
+        personBId,
+        zodiacMode,
+        ayanamsa,
+        relationshipType,
+        readingStyle,
+        customStyleText: readingStyle === "other" ? customStyleText : "",
+      });
+      // Fire-and-forget: kick off the AI reading (including the archetype name) right away so it's
+      // likely already ready by the time the user opens the chat drawer on the report page.
+      void synastryApi.pregenerateReading(report.id).catch(() => {});
       navigate(`/synastry/${report.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate synastry report");
@@ -202,6 +235,87 @@ export default function DashboardPage() {
                   </option>
                 ))}
               </select>
+
+              <fieldset className="flex flex-col gap-1">
+                <legend className="text-xs text-slate-400">Zodiac</legend>
+                <div className="flex overflow-hidden rounded border border-slate-600 self-start">
+                  <button
+                    type="button"
+                    onClick={() => setZodiacMode("tropical")}
+                    className={`px-3 py-1 text-sm ${zodiacMode === "tropical" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+                  >
+                    Tropical
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setZodiacMode("sidereal")}
+                    className={`px-3 py-1 text-sm ${zodiacMode === "sidereal" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+                  >
+                    Sidereal
+                  </button>
+                </div>
+                {zodiacMode === "sidereal" && (
+                  <select
+                    className="input mt-1"
+                    value={ayanamsa}
+                    onChange={(e) => setAyanamsa(e.target.value as Ayanamsa)}
+                  >
+                    {AYANAMSA_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </fieldset>
+
+              <fieldset className="flex flex-col gap-1">
+                <legend className="text-xs text-slate-400">Reading type</legend>
+                <div className="flex gap-4 text-sm text-slate-200">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="relationshipType"
+                      checked={relationshipType === "romantic"}
+                      onChange={() => setRelationshipType("romantic")}
+                    />
+                    Romantic
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="relationshipType"
+                      checked={relationshipType === "friendship"}
+                      onChange={() => setRelationshipType("friendship")}
+                    />
+                    Friendship
+                  </label>
+                </div>
+              </fieldset>
+
+              <label className="text-xs text-slate-400">
+                Reading style
+                <select
+                  className="input mt-1 w-full"
+                  value={readingStyle}
+                  onChange={(e) => setReadingStyle(e.target.value as ReadingStyle)}
+                >
+                  {READING_STYLES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {readingStyle === "other" && (
+                <input
+                  className="input"
+                  placeholder={`Describe the style you want (e.g. \u2018noir detective narration\u2019)`}
+                  value={customStyleText}
+                  onChange={(e) => setCustomStyleText(e.target.value)}
+                />
+              )}
+
               <button className="btn-primary" disabled={generating} onClick={() => void onGenerateSynastry()}>
                 {generating ? "Generating…" : "Generate synastry report"}
               </button>

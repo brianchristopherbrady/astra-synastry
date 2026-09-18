@@ -29,9 +29,15 @@ function effectiveHouseSystem(system: HouseSystem, latitude: number): HouseSyste
   return system;
 }
 
-export function calcHouses(tjdUt: number, latitude: number, longitude: number, system: HouseSystem): RawHouseResult {
+export function calcHouses(
+  tjdUt: number,
+  latitude: number,
+  longitude: number,
+  system: HouseSystem,
+  iflag = 0,
+): RawHouseResult {
   const code = HOUSE_SYSTEM_CODES[effectiveHouseSystem(system, latitude)];
-  const result = sweph.houses_ex2(tjdUt, 0, latitude, longitude, code as never);
+  const result = sweph.houses_ex2(tjdUt, iflag, latitude, longitude, code as never);
   if (result.flag !== sweph.constants.OK) {
     throw new Error(`House calculation failed: ${result.error ?? "unknown error"}`);
   }

@@ -10,6 +10,8 @@ interface AiChatDrawerProps {
   /** Multi-turn Q&A endpoint, e.g. `/ai/natal/:personId/chat`. */
   chatEndpoint: string;
   title: string;
+  /** Called once an archetype name is available (synastry reports only). */
+  onArchetypeName?: (name: string) => void;
 }
 
 const PROVIDERS: { value: AiProviderName; label: string }[] = [
@@ -22,7 +24,7 @@ const MAX_WIDTH = 900;
 const DEFAULT_WIDTH = 420;
 
 /** Draggable-width side drawer: shows the cached full reading, then lets you ask follow-up questions in a chat. */
-export function AiChatDrawer({ reportEndpoint, chatEndpoint, title }: AiChatDrawerProps) {
+export function AiChatDrawer({ reportEndpoint, chatEndpoint, title, onArchetypeName }: AiChatDrawerProps) {
   const [open, setOpen] = useState(false);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [input, setInput] = useState("");
@@ -42,11 +44,16 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title }: AiChatDraw
   }, [open]);
 
   useEffect(() => {
-    if (report.text && chat.messages.length === 0) {
+    if (!report.streaming && report.text && chat.messages.length === 0) {
       chat.seed([{ role: "assistant", content: report.text }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [report.text]);
+  }, [report.text, report.streaming]);
+
+  useEffect(() => {
+    if (report.archetypeName) onArchetypeName?.(report.archetypeName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [report.archetypeName]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -101,7 +108,10 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title }: AiChatDraw
       />
       <div className="flex min-w-0 flex-1 flex-col border-l border-slate-700 bg-slate-900 shadow-2xl">
         <div className="flex items-center justify-between gap-2 border-b border-slate-700 p-3">
-          <h3 className="truncate text-sm font-semibold text-stardust">{title}</h3>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-stardust">{title}</h3>
+            {report.archetypeName && <p className="truncate text-xs text-aurora">{report.archetypeName}</p>}
+          </div>
           <div className="flex items-center gap-2">
             {PROVIDERS.map((p) => (
               <button

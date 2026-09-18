@@ -1,6 +1,6 @@
 import { signForLongitude } from "@astro/shared";
-import type { BirthData, ChartData, HouseCusp, HouseSystem, PointName, PointPosition } from "@astro/shared";
-import { calcBody, southNodeLongitude, utcToJulianDay } from "./ephemeris.js";
+import type { Ayanamsa, BirthData, ChartData, HouseCusp, HouseSystem, PointName, PointPosition, ZodiacMode } from "@astro/shared";
+import { calcBody, southNodeLongitude, utcToJulianDay, zodiacFlag } from "./ephemeris.js";
 import { calcHouses } from "./houses.js";
 import { assignHousesToPoints, computePartOfFortune, toPointPosition } from "./chart-utils.js";
 import { findNatalAspects } from "./aspects.js";
@@ -28,16 +28,23 @@ const REQUIRED_BODY_POINTS: PointName[] = [
 const OPTIONAL_BODY_POINTS: PointName[] = ["chiron"];
 
 /** Assembles a full chart for an exact UTC instant + location. Shared by natal, davison and progression calculations. */
-export function assembleChart(birthData: BirthData, utcDate: Date, houseSystem: HouseSystem): ChartData {
+export function assembleChart(
+  birthData: BirthData,
+  utcDate: Date,
+  houseSystem: HouseSystem,
+  zodiacMode: ZodiacMode = "tropical",
+  ayanamsa: Ayanamsa = "lahiri",
+): ChartData {
   const tjdUt = utcToJulianDay(utcDate);
+  const extraFlags = zodiacFlag(zodiacMode, ayanamsa);
 
   const points: Partial<Record<PointName, PointPosition>> = {};
   for (const point of REQUIRED_BODY_POINTS) {
-    points[point] = toPointPosition(point, calcBody(point, tjdUt));
+    points[point] = toPointPosition(point, calcBody(point, tjdUt, extraFlags));
   }
   for (const point of OPTIONAL_BODY_POINTS) {
     try {
-      points[point] = toPointPosition(point, calcBody(point, tjdUt));
+      points[point] = toPointPosition(point, calcBody(point, tjdUt, extraFlags));
     } catch {
       // no ephemeris data file available for this body; omit it rather than failing the whole chart
     }
@@ -51,7 +58,7 @@ export function assembleChart(birthData: BirthData, utcDate: Date, houseSystem: 
 
   let houses: HouseCusp[] | null = null;
   if (!birthData.timeUnknown) {
-    const houseResult = calcHouses(tjdUt, birthData.latitude, birthData.longitude, houseSystem);
+    const houseResult = calcHouses(tjdUt, birthData.latitude, birthData.longitude, houseSystem, extraFlags);
     houses = houseResult.cusps.map((longitude, idx) => ({
       house: idx + 1,
       longitude,
@@ -81,6 +88,8 @@ export function assembleChart(birthData: BirthData, utcDate: Date, houseSystem: 
     birthData,
     utcDateTime: utcDate.toISOString(),
     houseSystem,
+    zodiacMode,
+    ayanamsa: zodiacMode === "sidereal" ? ayanamsa : undefined,
     points,
     houses,
     aspects,
@@ -88,7 +97,12 @@ export function assembleChart(birthData: BirthData, utcDate: Date, houseSystem: 
   };
 }
 
-export function computeNatalChart(birthData: BirthData, houseSystem: HouseSystem = "placidus"): ChartData {
+export function computeNatalChart(
+  birthData: BirthData,
+  houseSystem: HouseSystem = "placidus",
+  zodiacMode: ZodiacMode = "tropical",
+  ayanamsa: Ayanamsa = "lahiri",
+): ChartData {
   const utcDate = resolveBirthDataToUtc(birthData);
-  return assembleChart(birthData, utcDate, houseSystem);
+  return assembleChart(birthData, utcDate, houseSystem, zodiacMode, ayanamsa);
 }

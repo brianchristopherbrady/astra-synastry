@@ -1,6 +1,12 @@
 import type { Element, Modality, PointName } from "./points.js";
 import type { AspectHit, ChartData } from "./chart.js";
 
+/** How to frame a synastry reading \u2014 changes both the AI's interpretive lens and which sections it writes. */
+export type RelationshipType = "romantic" | "friendship";
+
+/** Requested tone/voice for the AI-generated reading. "other" pairs with a free-text description. */
+export type ReadingStyle = "clever" | "flirty" | "funny" | "mythic" | "brutal" | "other";
+
 export interface HouseOverlayEntry {
   point: PointName;
   house: number;

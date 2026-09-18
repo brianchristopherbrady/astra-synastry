@@ -1,4 +1,4 @@
-import type { AspectName, HouseSystem, PointName, ZodiacSign } from "./points.js";
+import type { AspectName, Ayanamsa, HouseSystem, PointName, ZodiacMode, ZodiacSign } from "./points.js";
 
 /** Birth/event data needed to compute a chart. Time may be unknown (rated-chart mode). */
 export interface BirthData {
@@ -69,6 +69,10 @@ export interface ChartData {
   /** Resolved UTC instant used for the calculation, ISO 8601. */
   utcDateTime: string;
   houseSystem: HouseSystem;
+  /** Tropical (default, modern Western standard) or sidereal (Vedic/Jyotish-style). */
+  zodiacMode: ZodiacMode;
+  /** Which ayanamsa was used to compute sidereal positions; absent/ignored when zodiacMode is tropical. */
+  ayanamsa?: Ayanamsa;
   points: Partial<Record<PointName, PointPosition>>;
   houses: HouseCusp[] | null;
   aspects: AspectHit[];

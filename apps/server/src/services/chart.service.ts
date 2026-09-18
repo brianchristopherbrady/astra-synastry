@@ -1,5 +1,5 @@
 import { computeNatalChart } from "@astro/astro-engine";
-import type { ChartData, HouseSystem } from "@astro/shared";
+import type { Ayanamsa, ChartData, HouseSystem, ZodiacMode } from "@astro/shared";
 import { prisma } from "../lib/prisma.js";
 
 interface PersonLike {
@@ -21,9 +21,14 @@ export interface ChartRecord {
 }
 
 /** Fetches a person's cached natal chart, computing and persisting it on first request. */
-export async function getOrComputeChart(person: PersonLike, houseSystem: HouseSystem): Promise<ChartRecord> {
+export async function getOrComputeChart(
+  person: PersonLike,
+  houseSystem: HouseSystem,
+  zodiacMode: ZodiacMode = "tropical",
+  ayanamsa: Ayanamsa = "lahiri",
+): Promise<ChartRecord> {
   const cached = await prisma.chart.findUnique({
-    where: { personId_houseSystem: { personId: person.id, houseSystem } },
+    where: { personId_houseSystem_zodiacMode_ayanamsa: { personId: person.id, houseSystem, zodiacMode, ayanamsa } },
   });
   if (cached) {
     return {
@@ -45,11 +50,14 @@ export async function getOrComputeChart(person: PersonLike, houseSystem: HouseSy
       timeUnknown: person.timeUnknown,
     },
     houseSystem,
+    zodiacMode,
+    ayanamsa,
   );
 
   const created = await prisma.chart.create({
-    data: { personId: person.id, houseSystem, dataJson: JSON.stringify(chart) },
+    data: { personId: person.id, houseSystem, zodiacMode, ayanamsa, dataJson: JSON.stringify(chart) },
   });
 
   return { id: created.id, chart, aiProvider: null, aiAnalysisMarkdown: null, aiPromptVersion: null };
 }
+

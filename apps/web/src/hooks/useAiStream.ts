@@ -3,12 +3,14 @@ import type { AiProviderName } from "@astro/shared";
 
 export function useAiStream() {
   const [text, setText] = useState("");
+  const [archetypeName, setArchetypeName] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const start = useCallback(async (endpoint: string, provider?: AiProviderName, force?: boolean) => {
     setText("");
+    setArchetypeName(null);
     setError(null);
     setStreaming(true);
     const controller = new AbortController();
@@ -41,11 +43,17 @@ export function useAiStream() {
           if (line.startsWith("event:")) {
             currentEvent = line.slice(6).trim();
           } else if (line.startsWith("data:")) {
-            const payload = JSON.parse(line.slice(5).trim()) as { token?: string; text?: string; error?: string };
+            const payload = JSON.parse(line.slice(5).trim()) as {
+              token?: string;
+              text?: string;
+              error?: string;
+              archetypeName?: string | null;
+            };
             if (currentEvent === "token" && payload.token) {
               setText((prev) => prev + payload.token);
             } else if ((currentEvent === "done" || currentEvent === "cached") && payload.text !== undefined) {
               setText(payload.text);
+              if (payload.archetypeName !== undefined) setArchetypeName(payload.archetypeName);
             } else if (currentEvent === "error") {
               setError(payload.error ?? "AI analysis failed");
             }
@@ -63,5 +71,5 @@ export function useAiStream() {
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
 
-  return { text, streaming, error, start, stop };
+  return { text, archetypeName, streaming, error, start, stop };
 }

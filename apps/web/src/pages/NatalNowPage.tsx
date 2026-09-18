@@ -12,7 +12,7 @@ import { ModalityBarChart } from "../components/dashboard/ModalityBarChart.js";
 import { AppHeader } from "../components/layout/AppHeader.js";
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
 import { computeChartBalance } from "../lib/chartBalance.js";
-import type { NatalTransitReport, ProgressedChartReport } from "@astro/shared";
+import type { HellenisticProfile, NatalTransitReport, ProgressedChartReport } from "@astro/shared";
 import { ALL_POINTS, POINT_GLYPHS, POINT_LABELS } from "@astro/shared";
 
 function todayIso(): string {
@@ -32,6 +32,8 @@ export default function NatalNowPage() {
   const [transits, setTransits] = useState<NatalTransitReport | null>(null);
   const [progressionDate, setProgressionDate] = useState<string>(todayIso());
   const [progression, setProgression] = useState<ProgressedChartReport | null>(null);
+  const [profectionDate, setProfectionDate] = useState<string>(todayIso());
+  const [hellenistic, setHellenistic] = useState<HellenisticProfile | null>(null);
 
   useEffect(() => {
     if (!personId) return;
@@ -58,6 +60,14 @@ export default function NatalNowPage() {
       .then(setProgression)
       .catch(() => setProgression(null));
   }, [personId, progressionDate]);
+
+  useEffect(() => {
+    if (!personId) return;
+    chartsApi
+      .hellenistic(personId, toUtcNoon(profectionDate))
+      .then(setHellenistic)
+      .catch(() => setHellenistic(null));
+  }, [personId, profectionDate]);
 
   if (error) {
     return (
@@ -203,6 +213,39 @@ export default function NatalNowPage() {
           </div>
         ) : (
           <p className="text-sm text-slate-400">Loading progressed chart…</p>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="text-xl font-semibold text-stardust">Annual profection</h2>
+          <input
+            type="date"
+            value={profectionDate}
+            onChange={(e) => setProfectionDate(e.target.value)}
+            className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+          />
+        </div>
+        <p className="mb-4 text-sm text-slate-400">
+          A Hellenistic "whole sign for a year" technique: each completed year of life activates the
+          next sign/house from the Ascendant, and its traditional ruler becomes that year's "lord of
+          the year."
+        </p>
+        {hellenistic ? (
+          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <p className="text-sm text-slate-200">
+              At age <span className="font-semibold text-aurora">{hellenistic.profection.age}</span>,{" "}
+              {personName} is in a <span className="capitalize text-aurora">{hellenistic.profection.profectedSign}</span>{" "}
+              profection (house {hellenistic.profection.profectedHouse}). This year&apos;s lord is{" "}
+              <span className="text-aurora">
+                {POINT_GLYPHS[hellenistic.profection.lordOfYear]} {POINT_LABELS[hellenistic.profection.lordOfYear]}
+              </span>
+              , natally in <span className="capitalize">{hellenistic.profection.lordNatalSign}</span>
+              {hellenistic.profection.lordNatalHouse ? ` (house ${hellenistic.profection.lordNatalHouse})` : ""}.
+            </p>
+          </section>
+        ) : (
+          <p className="text-sm text-slate-400">Loading profection…</p>
         )}
       </section>
 

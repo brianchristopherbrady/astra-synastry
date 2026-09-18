@@ -50,6 +50,8 @@ export function computeCompositeChart(chartA: ChartData, chartB: ChartData): Cha
     },
     utcDateTime: chartA.utcDateTime,
     houseSystem: chartA.houseSystem,
+    zodiacMode: chartA.zodiacMode,
+    ayanamsa: chartA.ayanamsa,
     points,
     houses,
     aspects,

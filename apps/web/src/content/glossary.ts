@@ -137,4 +137,24 @@ export const GENERAL_TERMS: GlossaryEntry[] = [
     body: "Every sign has an element (fire/earth/air/water \u2014 its basic temperament) and a modality (cardinal/fixed/mutable \u2014 how it engages: starting, sustaining, or adapting).",
     implemented: true,
   },
+  {
+    title: "Tropical vs. sidereal zodiac",
+    body: "Tropical (the modern Western default) fixes the zodiac to the seasons/equinoxes. Sidereal (used in Vedic/Jyotish astrology) fixes it to the actual visible constellations, offset from tropical by an \"ayanamsa\" that grows by about 1\u00b0 every 72 years due to Earth's precession \u2014 currently around 24\u00b0. Switch between them on your natal chart page.",
+    implemented: true,
+  },
+  {
+    title: "Sect",
+    body: "The Hellenistic division of every chart into \"day\" (Sun above the horizon) or \"night\" (Sun below it). Sect determines which planets act as your chart's more favorable benefic/malefic \u2014 Jupiter and Saturn favor day charts, Venus and Mars favor night charts. See it on your natal chart page.",
+    implemented: true,
+  },
+  {
+    title: "Hellenistic lots",
+    body: "Classical calculated points (beyond the well-known Part of Fortune) such as the Lots of Spirit, Eros, Necessity, Courage, Victory, and Nemesis \u2014 each a specific angle derived from the Ascendant and two planets, shifting direction depending on sect. See them on your natal chart page.",
+    implemented: true,
+  },
+  {
+    title: "Annual profections",
+    body: "A Hellenistic timing technique: each completed year of life whole-sign-activates the next house/sign from the Ascendant, and that sign's traditional ruler becomes the year's \"lord of the year.\" See it on your chart's \"Now\" page.",
+    implemented: true,
+  },
 ];

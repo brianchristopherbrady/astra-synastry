@@ -27,6 +27,7 @@ export default function SynastryReportPage() {
   const [insightTarget, setInsightTarget] = useState<BalanceInsightTarget | null>(null);
   const [pointTarget, setPointTarget] = useState<PointName | null>(null);
   const [houseTarget, setHouseTarget] = useState<number | null>(null);
+  const [archetypeName, setArchetypeName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -34,6 +35,7 @@ export default function SynastryReportPage() {
       .get(id)
       .then((result) => {
         setReport(result);
+        setArchetypeName(result.archetypeName);
         setLastChart(`/synastry/${id}`);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load report"));
@@ -68,7 +70,12 @@ export default function SynastryReportPage() {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <AppHeader />
-      <h1 className="mb-4 text-2xl font-bold text-stardust">Synastry Report</h1>
+      <h1 className="text-2xl font-bold text-stardust">{archetypeName ?? "Synastry Report"}</h1>
+      <p className="mb-4 text-sm text-slate-400">
+        Synastry report for {report.personAName} &amp; {report.personBName}{" "}
+        <span className="capitalize">({report.relationshipType})</span>
+        {report.zodiacMode === "sidereal" && <span> &middot; Sidereal ({report.ayanamsa})</span>}
+      </p>
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <div className="min-w-0">
           <KeyPlacementsSummary chart={report.personAChart} personName={report.personAName} onSelect={setPointTarget} />
@@ -220,6 +227,7 @@ export default function SynastryReportPage() {
         reportEndpoint={`/ai/synastry/${report.id}`}
         chatEndpoint={`/ai/synastry/${report.id}/chat`}
         title={`AI Chat — ${report.personAName} & ${report.personBName}`}
+        onArchetypeName={setArchetypeName}
       />
     </div>
   );

@@ -13,14 +13,15 @@ function findHit(aspects: AspectHit[], a: PointName, b: PointName): AspectHit | 
 
 export function AspectGrid({ pointsA, pointsB, aspects }: AspectGridProps) {
   return (
-    <div className="overflow-auto">
+    <div className="data-scroll" role="region" aria-label="Aspect comparison" tabIndex={0}>
       <table className="border-collapse text-xs">
+      <caption className="sr-only">Planetary aspects and orb in degrees</caption>
         <thead>
           <tr>
             <th className="w-8" />
             {pointsB.map((b) => (
-              <th key={b} className="p-1 text-slate-400" title={POINT_LABELS[b]}>
-                {POINT_GLYPHS[b]}
+              <th key={b} scope="col" className="p-1 text-muted" title={POINT_LABELS[b]}>
+                <span aria-hidden="true">{POINT_GLYPHS[b]}</span><span className="sr-only">{POINT_LABELS[b]}</span>
               </th>
             ))}
           </tr>
@@ -28,8 +29,8 @@ export function AspectGrid({ pointsA, pointsB, aspects }: AspectGridProps) {
         <tbody>
           {pointsA.map((a) => (
             <tr key={a}>
-              <th className="p-1 text-slate-400 text-left" title={POINT_LABELS[a]}>
-                {POINT_GLYPHS[a]}
+              <th scope="row" className="p-1 text-muted text-left" title={POINT_LABELS[a]}>
+                <span aria-hidden="true">{POINT_GLYPHS[a]}</span><span className="sr-only">{POINT_LABELS[a]}</span>
               </th>
               {pointsB.map((b) => {
                 const hit = findHit(aspects, a, b);
@@ -40,7 +41,7 @@ export function AspectGrid({ pointsA, pointsB, aspects }: AspectGridProps) {
                     className="w-8 h-8 text-center border border-slate-700"
                     title={hit ? `${POINT_LABELS[a]} ${hit.aspect} ${POINT_LABELS[b]} (orb ${hit.orb.toFixed(2)}°)` : undefined}
                   >
-                    {hit && def ? <span style={{ color: def.harmony >= 0 ? "#22c55e" : "#ef4444" }}>{def.glyph}</span> : ""}
+                    {hit && def ? <><span aria-hidden="true" style={{ color: `rgb(var(--color-${def.harmony >= 0 ? "success" : "danger"}))` }}>{def.glyph}</span><span className="sr-only">{`${hit.aspect}, orb ${hit.orb.toFixed(2)} degrees`}</span></> : <span className="sr-only">No aspect</span>}
                   </td>
                 );
               })}

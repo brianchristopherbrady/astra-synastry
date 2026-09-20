@@ -1,5 +1,6 @@
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
 import type { BalanceBreakdown, Element } from "@astro/shared";
+import { ChartDataList } from "../ui/ChartDataList.js";
 
 interface ElementRadarChartProps {
   balance: BalanceBreakdown<Element>;
@@ -14,25 +15,13 @@ export function ElementRadarChart({ balance, onSelect }: ElementRadarChartProps)
     <div>
       <ResponsiveContainer width="100%" height={220}>
         <RadarChart data={data} outerRadius="60%" margin={{ top: 16, right: 24, bottom: 16, left: 24 }}>
-          <PolarGrid stroke="#334155" />
-          <PolarAngleAxis dataKey="element" tick={{ fill: "#cbd5e1", fontSize: 11 }} />
+          <PolarGrid stroke="rgb(var(--color-border))" />
+          <PolarAngleAxis dataKey="element" tick={{ fill: "rgb(var(--color-muted))", fontSize: 12 }} />
           <PolarRadiusAxis tick={false} axisLine={false} />
-          <Radar dataKey="count" stroke="#7c5cff" fill="#7c5cff" fillOpacity={0.5} />
+          <Radar dataKey="count" stroke="rgb(var(--color-action))" fill="rgb(var(--color-action))" fillOpacity={0.5} isAnimationActive={false} />
         </RadarChart>
       </ResponsiveContainer>
-      {onSelect && (
-        <div className="flex flex-wrap justify-center gap-2">
-          {ELEMENTS.map((element) => (
-            <button
-              key={element}
-              onClick={() => onSelect(element)}
-              className="rounded border border-slate-600 px-2 py-0.5 text-xs capitalize text-slate-300 hover:border-aurora hover:text-aurora"
-            >
-              {element}
-            </button>
-          ))}
-        </div>
-      )}
+      <ChartDataList label="Element counts" entries={data.map(({ element, count }) => ({ label: element, value: count, onSelect: onSelect ? () => onSelect(element) : undefined }))} />
     </div>
   );
 }

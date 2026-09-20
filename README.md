@@ -58,4 +58,13 @@ pnpm dev:web      # http://localhost:5173 (proxies /api to the server)
 
 ```powershell
 pnpm --filter @astro/astro-engine test   # ephemeris/aspect/synastry accuracy & integration tests
+pnpm --filter @astro/web test            # UI interaction and accessibility contracts
+pnpm --filter @astro/web build           # frontend typecheck and production bundle
 ```
+
+## UI system
+
+See [the design-system guide](docs/design-system.md) for tokens, component APIs,
+responsive recipes, migration rules, and contribution gates. Actual browser checks,
+test results, and remaining limitations are recorded in
+[the verification report](docs/design-system-verification.md).

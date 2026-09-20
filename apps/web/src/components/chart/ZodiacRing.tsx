@@ -40,8 +40,8 @@ export function ZodiacRing({ center, outerRadius, innerRadius, ascendant }: Zodi
               stroke="#334155"
               strokeWidth={0.5}
             />
-            <text x={glyphPos.x} y={glyphPos.y} fill="#f5c451" fontSize={16} textAnchor="middle" dominantBaseline="middle">
-              {signInfo.glyph}
+            <text className="astro-symbol" x={glyphPos.x} y={glyphPos.y} fill="rgb(var(--color-accent))" fontSize={16} textAnchor="middle" dominantBaseline="middle">
+              {`${signInfo.glyph}\ufe0e`}
             </text>
             <title>{`${signInfo.name} (${signInfo.element}, ${signInfo.modality})`}</title>
           </g>

@@ -24,16 +24,16 @@ export function HouseBreakdown({ chart }: HouseBreakdownProps) {
   const pointsByHouseMap = pointsByHouse(chart);
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="house-grid">
       {chart.houses.map((cusp) => {
         const meaning = HOUSE_MEANINGS[cusp.house];
         const occupants = pointsByHouseMap.get(cusp.house) ?? [];
         return (
-          <div key={cusp.house} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
-            <div className="mb-1 flex items-center justify-between gap-2">
+          <div key={cusp.house} className="house-entry">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-aurora">{meaning?.title ?? `House ${cusp.house}`}</h3>
-              <span className="shrink-0 text-xs capitalize text-slate-400">
-                {signGlyph(cusp.sign)} {cusp.sign} {`${cusp.signDegree.toFixed(1)}\u00b0`}
+              <span className="text-xs capitalize text-muted">
+                <span className="astro-symbol">{`${signGlyph(cusp.sign)}\ufe0e`}</span> {cusp.sign} {`${cusp.signDegree.toFixed(1)}\u00b0`}
               </span>
             </div>
             {meaning && <p className="mb-2 text-xs text-slate-400">{meaning.body}</p>}

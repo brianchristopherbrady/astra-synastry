@@ -33,15 +33,13 @@ function PlacementCard({
   return (
     <Wrapper
       onClick={onSelect ? () => onSelect(point) : undefined}
-      className={`flex flex-col items-center rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-center ${
-        onSelect ? "cursor-pointer hover:border-aurora" : ""
-      }`}
+      className={`placement${big ? " placement-primary" : ""}`}
     >
-      <span className="text-xs uppercase tracking-wide text-slate-400">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
       {pos ? (
         <>
-          <span className={big ? "text-2xl" : "text-lg"}>
-            {POINT_GLYPHS[point]} {signGlyph(chart, point)}
+          <span className={`astro-symbol ${big ? "text-2xl" : "text-lg"}`} aria-hidden="true">
+            {POINT_GLYPHS[point]} {`${signGlyph(chart, point)}\ufe0e`}
           </span>
           <span className="text-xs capitalize text-slate-300">{`${pos.sign} ${pos.signDegree.toFixed(1)}\u00b0`}</span>
         </>
@@ -55,9 +53,9 @@ function PlacementCard({
 /** "At a glance" summary so a viewer immediately sees the Sun/Moon/Rising (and a few more) without reading the wheel. */
 export function KeyPlacementsSummary({ chart, personName, onSelect }: KeyPlacementsSummaryProps) {
   return (
-    <div className="w-full">
-      <h3 className="mb-2 text-sm font-semibold text-stardust">{personName}&apos;s key placements</h3>
-      <div className="flex flex-wrap gap-2">
+    <div className="placements">
+      <h2 className="mb-3 text-sm font-medium text-muted">{personName}&apos;s key placements</h2>
+      <div className="placement-grid">
         {BIG_THREE.map((point) => (
           <PlacementCard key={point} chart={chart} point={point} big onSelect={onSelect} />
         ))}

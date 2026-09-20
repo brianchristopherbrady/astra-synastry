@@ -48,7 +48,7 @@ export function ChartWheel({
       role="img"
       aria-label="Astrology chart wheel"
     >
-      <circle cx={center} cy={center} r={zodiacOuter} fill="#12142a" />
+      <circle cx={center} cy={center} r={zodiacOuter} fill="rgb(var(--color-surface))" />
       <ZodiacRing center={center} outerRadius={zodiacOuter} innerRadius={zodiacInner} ascendant={ascendant} />
       {innerChart.houses && (
         <HouseRing
@@ -94,7 +94,7 @@ export function ChartWheel({
             radius={innerPlanetRadius}
             ascendant={ascendant}
             position={pos}
-            color="#7c5cff"
+            color="rgb(var(--color-action))"
             ownerLabel={outerChart ? innerLabel : undefined}
           />
         );
@@ -112,7 +112,7 @@ export function ChartWheel({
               radius={outerPlanetRadius}
               ascendant={ascendant}
               position={pos}
-              color="#f5c451"
+              color="rgb(var(--color-accent))"
               ownerLabel={outerLabel}
             />
           );

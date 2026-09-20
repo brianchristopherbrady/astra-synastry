@@ -6,9 +6,9 @@ interface CompatibilityGaugeProps {
 }
 
 function gaugeColor(value: number): string {
-  if (value >= 70) return "#22c55e";
-  if (value >= 45) return "#f5c451";
-  return "#ef4444";
+  if (value >= 70) return "rgb(var(--color-success))";
+  if (value >= 45) return "rgb(var(--color-accent))";
+  return "rgb(var(--color-danger))";
 }
 
 export function CompatibilityGauge({ score }: CompatibilityGaugeProps) {
@@ -16,13 +16,15 @@ export function CompatibilityGauge({ score }: CompatibilityGaugeProps) {
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-full">
+        <div aria-hidden="true">
         <ResponsiveContainer width="100%" height={180}>
           <RadialBarChart innerRadius="70%" outerRadius="100%" data={data} startAngle={90} endAngle={-270}>
             <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-            <RadialBar dataKey="value" background={{ fill: "#1e293b" }} cornerRadius={8} />
+            <RadialBar dataKey="value" background={{ fill: "rgb(var(--color-elevated))" }} cornerRadius={8} isAnimationActive={false} />
           </RadialBarChart>
         </ResponsiveContainer>
-        <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold">{score.overall}</div>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold"><span className="sr-only">Overall compatibility: </span>{score.overall}<span className="sr-only"> out of 100</span></div>
       </div>
       <div className="mt-2 grid grid-cols-1 gap-y-1 text-xs text-slate-300 w-full">
         {Object.entries(score.categories).map(([category, value]) => (

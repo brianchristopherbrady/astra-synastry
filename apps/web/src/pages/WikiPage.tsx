@@ -1,6 +1,5 @@
 import { ASPECT_DEFINITIONS, POINT_GLYPHS, POINT_LABELS, ZODIAC_SIGNS } from "@astro/shared";
 import type { PointName } from "@astro/shared";
-import { AppHeader } from "../components/layout/AppHeader.js";
 import { GENERAL_TERMS, HOUSE_MEANINGS, PATTERN_MEANINGS, POINT_MEANINGS, SIGN_MEANINGS } from "../content/glossary.js";
 
 const POINT_ORDER: PointName[] = [
@@ -35,25 +34,23 @@ const SECTIONS = [
 
 export default function WikiPage() {
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <AppHeader />
-      <h1 className="mb-2 text-2xl font-bold text-stardust">Astrology Wiki</h1>
-      <p className="mb-6 text-sm text-slate-400">
-        A quick reference for the terms and symbols used throughout your charts and readings.
-      </p>
+    <div className="page-content">
+      <div className="page-heading"><div><p className="eyebrow">The astrological reference</p><h1 className="page-title">Astrology Wiki</h1></div></div>
 
-      <nav className="mb-8 flex flex-wrap gap-2">
+      <div className="wiki-layout">
+      <nav aria-label="Wiki sections" className="wiki-nav">
         {SECTIONS.map((s) => (
           <a
             key={s.id}
             href={`#${s.id}`}
-            className="rounded border border-slate-600 px-3 py-1 text-sm text-slate-200 hover:border-aurora hover:text-aurora"
+            className="reference-link"
           >
             {s.label}
           </a>
         ))}
       </nav>
 
+      <div className="wiki-content">
       <section id="terms" className="mb-10 scroll-mt-6">
         <h2 className="mb-3 text-xl font-semibold text-stardust">Key terms</h2>
         {GENERAL_TERMS.some((entry) => entry.implemented === false) && (
@@ -64,7 +61,7 @@ export default function WikiPage() {
         )}
         <div className="grid gap-3 sm:grid-cols-2">
           {GENERAL_TERMS.map((entry) => (
-            <div key={entry.title} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+            <div key={entry.title} className="reference-item">
               <div className="mb-1 flex items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold text-aurora">{entry.title}</h3>
                 {entry.implemented === false && (
@@ -83,7 +80,7 @@ export default function WikiPage() {
         <h2 className="mb-3 text-xl font-semibold text-stardust">Planets &amp; points</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {POINT_ORDER.map((point) => (
-            <div key={point} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+            <div key={point} className="reference-item">
               <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-aurora">
                 <span className="text-lg">{POINT_GLYPHS[point]}</span>
                 {POINT_LABELS[point]}
@@ -98,7 +95,7 @@ export default function WikiPage() {
         <h2 className="mb-3 text-xl font-semibold text-stardust">Zodiac signs</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {ZODIAC_SIGNS.map((signInfo) => (
-            <div key={signInfo.sign} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+            <div key={signInfo.sign} className="reference-item">
               <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-aurora">
                 <span className="text-lg">{signInfo.glyph}</span>
                 {signInfo.name}
@@ -114,7 +111,7 @@ export default function WikiPage() {
         <h2 className="mb-3 text-xl font-semibold text-stardust">Houses</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {Object.entries(HOUSE_MEANINGS).map(([house, entry]) => (
-            <div key={house} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+            <div key={house} className="reference-item">
               <h3 className="mb-1 text-sm font-semibold text-aurora">{entry.title}</h3>
               <p className="text-sm text-slate-300">{entry.body}</p>
             </div>
@@ -126,7 +123,7 @@ export default function WikiPage() {
         <h2 className="mb-3 text-xl font-semibold text-stardust">Aspects</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {ASPECT_DEFINITIONS.map((def) => (
-            <div key={def.aspect} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+            <div key={def.aspect} className="reference-item">
               <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-aurora">
                 <span className="text-lg">{def.glyph}</span>
                 <span className="capitalize">{def.aspect}</span>
@@ -148,13 +145,15 @@ export default function WikiPage() {
         <h2 className="mb-3 text-xl font-semibold text-stardust">Aspect patterns</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {Object.entries(PATTERN_MEANINGS).map(([type, body]) => (
-            <div key={type} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+            <div key={type} className="reference-item">
               <h3 className="mb-1 text-sm font-semibold capitalize text-aurora">{type.replace(/([A-Z])/g, " $1")}</h3>
               <p className="text-sm text-slate-300">{body}</p>
             </div>
           ))}
         </div>
       </section>
+      </div>
+      </div>
     </div>
   );
 }

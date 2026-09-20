@@ -6,9 +6,14 @@ import SynastryNowPage from "./pages/SynastryNowPage.js";
 import NatalChartPage from "./pages/NatalChartPage.js";
 import NatalNowPage from "./pages/NatalNowPage.js";
 import WikiPage from "./pages/WikiPage.js";
+import { AppHeader } from "./components/layout/AppHeader.js";
 
 export default function App(): ReactElement {
   return (
+    <div className="app-page">
+    <a className="skip-link" href="#main-content">Skip to content</a>
+    <AppHeader />
+    <main id="main-content" tabIndex={-1}>
     <Routes>
       <Route path="/" element={<DashboardPage />} />
       <Route path="/synastry/:id" element={<SynastryReportPage />} />
@@ -17,5 +22,7 @@ export default function App(): ReactElement {
       <Route path="/chart/:personId/now" element={<NatalNowPage />} />
       <Route path="/wiki" element={<WikiPage />} />
     </Routes>
+    </main>
+    </div>
   );
 }

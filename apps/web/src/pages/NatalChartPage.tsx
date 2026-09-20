@@ -16,9 +16,9 @@ import { ElementRadarChart } from "../components/dashboard/ElementRadarChart.js"
 import { ModalityBarChart } from "../components/dashboard/ModalityBarChart.js";
 import { HouseOccupancyChart } from "../components/dashboard/HouseOccupancyChart.js";
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
-import { AppHeader } from "../components/layout/AppHeader.js";
 import { computeChartBalance } from "../lib/chartBalance.js";
 import { setLastChart } from "../lib/lastChart.js";
+import { ChartNavigation } from "../components/layout/ChartNavigation.js";
 
 const AYANAMSA_OPTIONS: { value: Ayanamsa; label: string }[] = [
   { value: "lahiri", label: "Lahiri" },
@@ -71,17 +71,15 @@ export default function NatalChartPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
-        <AppHeader />
-        <p className="text-red-400">{error}</p>
+      <div className="page-content">
+        <p role="alert" className="text-danger">{error}</p>
       </div>
     );
   }
   if (!chart || !personId) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
-        <AppHeader />
-        <p className="text-slate-400">Loading chart…</p>
+      <div className="page-content">
+        <p role="status" className="text-muted">Loading chart…</p>
       </div>
     );
   }
@@ -90,31 +88,38 @@ export default function NatalChartPage() {
   const personName = person?.name ?? "This person";
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <AppHeader />
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-stardust">Natal Chart Reading</h1>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-xs uppercase tracking-wide text-slate-400">Zodiac</span>
-          <div className="flex overflow-hidden rounded border border-slate-600">
+    <div className="page-content">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Natal chart</p>
+          <h1 className="page-title">{personName}</h1>
+          <p className="mt-2 text-sm text-muted">{person?.localDateTime.split("T")[0]}{person?.locationName ? ` · ${person.locationName}` : ""}</p>
+        </div>
+        <fieldset className="min-w-0">
+          <legend className="mb-1 text-sm text-muted">Zodiac</legend>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="segmented-control">
             <button
               onClick={() => setZodiacMode("tropical")}
-              className={`px-3 py-1 ${zodiacMode === "tropical" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+              aria-pressed={zodiacMode === "tropical"}
+              className="px-3 py-1"
             >
               Tropical
             </button>
             <button
               onClick={() => setZodiacMode("sidereal")}
-              className={`px-3 py-1 ${zodiacMode === "sidereal" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+              aria-pressed={zodiacMode === "sidereal"}
+              className="px-3 py-1"
             >
               Sidereal
             </button>
           </div>
           {zodiacMode === "sidereal" && (
             <select
+              aria-label="Ayanamsa"
               value={ayanamsa}
               onChange={(e) => setAyanamsa(e.target.value as Ayanamsa)}
-              className="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200"
+              className="input"
             >
               {AYANAMSA_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -123,14 +128,16 @@ export default function NatalChartPage() {
               ))}
             </select>
           )}
-        </div>
+          </div>
+        </fieldset>
       </div>
+      <ChartNavigation basePath={`/chart/${personId}`} />
       <div className="mb-6">
         <KeyPlacementsSummary chart={chart} personName={personName} onSelect={setPointTarget} />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(280px,380px)_1fr] md:items-start">
-        <div className="flex min-w-0 flex-col items-center gap-4 md:sticky md:top-6">
+      <div className="report-layout">
+        <div className="report-chart">
           <ChartWheel innerChart={chart} hiddenPoints={hiddenPoints} />
           <ChartPointLegend
             hiddenPoints={hiddenPoints}
@@ -140,43 +147,40 @@ export default function NatalChartPage() {
           />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-6">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+        <div className="report-details">
+          <div className="report-metrics">
+            <section className="report-section">
               <h2 className="mb-2 text-sm font-semibold">Element balance</h2>
               <ElementRadarChart balance={elementBalance} onSelect={(element) => setInsightTarget({ kind: "element", value: element })} />
             </section>
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <section className="report-section">
               <h2 className="mb-2 text-sm font-semibold">Modality balance</h2>
               <ModalityBarChart balance={modalityBalance} onSelect={(modality) => setInsightTarget({ kind: "modality", value: modality })} />
             </section>
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <section className="report-section">
               <h2 className="mb-2 text-sm font-semibold">House occupancy</h2>
               <HouseOccupancyChart chart={chart} onSelect={setHouseTarget} />
             </section>
           </div>
 
-          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
-            <div className="mb-2 flex items-center justify-between gap-2">
+          <section className="report-section">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Your houses</h2>
               <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
                 What are houses?
               </Link>
             </div>
-            <p className="mb-3 text-xs text-slate-400">
-              What each house means, plus what&apos;s actually sitting in it for {personName}.
-            </p>
             <HouseBreakdown chart={chart} />
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+          <div className="report-pair">
+            <section className="report-section">
               <h2 className="mb-2 text-lg font-semibold">Aspect grid</h2>
               <AspectGrid pointsA={ALL_POINTS} pointsB={ALL_POINTS} aspects={chart.aspects} />
             </section>
 
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
-              <div className="mb-2 flex items-center justify-between">
+            <section className="report-section">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">Detected aspect patterns</h2>
                 <Link to="/wiki#patterns" className="text-xs text-aurora hover:underline">
                   What do these mean?
@@ -200,15 +204,15 @@ export default function NatalChartPage() {
             </section>
           </div>
 
-          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
-            <div className="mb-2 flex items-center justify-between gap-2">
+          <section className="report-section">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Hellenistic techniques</h2>
               <Link to="/wiki#terms" className="text-xs text-aurora hover:underline">
                 What is this?
               </Link>
             </div>
             {hellenistic ? (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="report-pair">
                 <div>
                   <h3 className="mb-1 text-sm font-semibold text-stardust">
                     Sect: <span className="capitalize text-aurora">{hellenistic.sect.sect} chart</span>
@@ -241,12 +245,12 @@ export default function NatalChartPage() {
             )}
           </section>
 
-          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4 text-center">
+          <section className="report-section">
             <h2 className="mb-1 text-lg font-semibold">Current transits &amp; secondary progressions</h2>
             <p className="mb-3 text-sm text-slate-400">See what's happening for {personName} right now, on a dedicated page.</p>
             <Link
               to={`/chart/${personId}/now`}
-              className="inline-block rounded border border-aurora px-4 py-2 text-sm font-semibold text-aurora hover:bg-aurora/10"
+              className="btn-secondary"
             >
               View the "Now" page →
             </Link>

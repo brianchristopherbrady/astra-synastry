@@ -16,8 +16,8 @@ import { ModalityBarChart } from "../components/dashboard/ModalityBarChart.js";
 import { CompatibilityGauge } from "../components/dashboard/CompatibilityGauge.js";
 import { HouseOccupancyChart } from "../components/dashboard/HouseOccupancyChart.js";
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
-import { AppHeader } from "../components/layout/AppHeader.js";
 import { setLastChart } from "../lib/lastChart.js";
+import { ChartNavigation } from "../components/layout/ChartNavigation.js";
 
 export default function SynastryReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -52,31 +52,34 @@ export default function SynastryReportPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
-        <AppHeader />
-        <p className="text-red-400">{error}</p>
+      <div className="page-content">
+        <p role="alert" className="text-red-400">{error}</p>
       </div>
     );
   }
   if (!report) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
-        <AppHeader />
-        <p className="text-slate-400">Loading synastry report…</p>
+      <div className="page-content">
+        <p role="status" className="text-muted">Loading synastry report…</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <AppHeader />
-      <h1 className="text-2xl font-bold text-stardust">{archetypeName ?? "Synastry Report"}</h1>
-      <p className="mb-4 text-sm text-slate-400">
-        Synastry report for {report.personAName} &amp; {report.personBName}{" "}
-        <span className="capitalize">({report.relationshipType})</span>
-        {report.zodiacMode === "sidereal" && <span> &middot; Sidereal ({report.ayanamsa})</span>}
-      </p>
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+    <div className="page-content">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Relationship reading</p>
+          <h1 className="page-title">{report.personAName} &amp; {report.personBName}</h1>
+          <p className="mt-2 text-sm text-muted">
+            {archetypeName && <span className="text-stardust">{archetypeName} &middot; </span>}
+            <span className="capitalize">{report.relationshipType} &middot; {report.zodiacMode ?? "tropical"}</span>
+            {report.zodiacMode === "sidereal" && <span> ({report.ayanamsa})</span>}
+          </p>
+        </div>
+      </div>
+      <ChartNavigation basePath={`/synastry/${report.id}`} label="Relationship chart" />
+      <div className="report-pair mb-6">
         <div className="min-w-0">
           <KeyPlacementsSummary chart={report.personAChart} personName={report.personAName} onSelect={setPointTarget} />
         </div>
@@ -85,8 +88,8 @@ export default function SynastryReportPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(280px,380px)_1fr] md:items-start">
-        <div className="flex min-w-0 flex-col items-center gap-4 md:sticky md:top-6">
+      <div className="report-layout">
+        <div className="report-chart">
           <ChartWheel
             innerChart={report.personAChart}
             outerChart={report.personBChart}
@@ -107,20 +110,20 @@ export default function SynastryReportPage() {
           />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-6">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+        <div className="report-details">
+          <div className="report-metrics">
+            <section className="report-section">
               <h2 className="mb-2 text-sm font-semibold">Compatibility</h2>
               <CompatibilityGauge score={report.compatibilityScore} />
             </section>
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <section className="report-section">
               <h2 className="mb-2 text-sm font-semibold">Element balance</h2>
               <ElementRadarChart
                 balance={report.compatibilityScore.elementBalance}
                 onSelect={(element) => setInsightTarget({ kind: "element", value: element })}
               />
             </section>
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <section className="report-section">
               <h2 className="mb-2 text-sm font-semibold">Modality balance</h2>
               <ModalityBarChart
                 balance={report.compatibilityScore.modalityBalance}
@@ -129,20 +132,20 @@ export default function SynastryReportPage() {
             </section>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+          <div className="report-pair">
+            <section className="report-section">
               <h2 className="mb-2 text-lg font-semibold">{report.personAName}&apos;s houses</h2>
               <HouseOccupancyChart chart={report.personAChart} onSelect={setHouseTarget} />
             </section>
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <section className="report-section">
               <h2 className="mb-2 text-lg font-semibold">{report.personBName}&apos;s houses</h2>
               <HouseOccupancyChart chart={report.personBChart} onSelect={setHouseTarget} />
             </section>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
-              <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="report-pair">
+            <section className="report-section">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">{report.personAName}&apos;s houses, explained</h2>
                 <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
                   What are houses?
@@ -150,19 +153,19 @@ export default function SynastryReportPage() {
               </div>
               <HouseBreakdown chart={report.personAChart} />
             </section>
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <section className="report-section">
               <h2 className="mb-2 text-lg font-semibold">{report.personBName}&apos;s houses, explained</h2>
               <HouseBreakdown chart={report.personBChart} />
             </section>
           </div>
 
-          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+          <section className="report-section">
             <h2 className="mb-2 text-lg font-semibold">Cross-aspect grid</h2>
             <AspectGrid pointsA={ALL_POINTS} pointsB={ALL_POINTS} aspects={report.crossAspects} />
           </section>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+          <div className="report-pair">
+            <section className="report-section">
               <h2 className="mb-2 text-lg font-semibold">Composite chart</h2>
               <p className="mb-3 text-xs text-slate-400">The relationship as its own entity, built from the midpoint of every placement.</p>
               <div className="flex flex-col items-center gap-3">
@@ -172,7 +175,7 @@ export default function SynastryReportPage() {
                 <KeyPlacementsSummary chart={report.compositeChart} personName="The relationship (composite)" />
               </div>
             </section>
-            <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <section className="report-section">
               <h2 className="mb-2 text-lg font-semibold">Davison chart</h2>
               <p className="mb-3 text-xs text-slate-400">A real chart for the midpoint moment in time and location between you two.</p>
               <div className="flex flex-col items-center gap-3">
@@ -184,14 +187,14 @@ export default function SynastryReportPage() {
             </section>
           </div>
 
-          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4 text-center">
+          <section className="report-section">
             <h2 className="mb-1 text-lg font-semibold">Current transits</h2>
             <p className="mb-3 text-sm text-slate-400">
               See what's happening for {report.personAName} &amp; {report.personBName} right now, on a dedicated page.
             </p>
             <Link
               to={`/synastry/${report.id}/now`}
-              className="inline-block rounded border border-aurora px-4 py-2 text-sm font-semibold text-aurora hover:bg-aurora/10"
+              className="btn-secondary"
             >
               View the "Now" page →
             </Link>

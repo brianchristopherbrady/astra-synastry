@@ -1,10 +1,11 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ArrowUpRight, Plus, Trash2, Users, Orbit, MapPin } from "lucide-react";
 import type { Ayanamsa, PlaceSuggestion, ReadingStyle, RelationshipType, ZodiacMode } from "@astro/shared";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { synastryApi } from "../api/synastryApi.js";
 import { PlaceSearchInput } from "../components/forms/PlaceSearchInput.js";
-import { AppHeader } from "../components/layout/AppHeader.js";
+import { Modal } from "../components/ui/Modal.js";
 
 const READING_STYLES: { value: ReadingStyle; label: string }[] = [
   { value: "clever", label: "Clever" },
@@ -28,6 +29,11 @@ export default function DashboardPage() {
   const [people, setPeople] = useState<PersonRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+  const [addingPerson, setAddingPerson] = useState(false);
+  const [personToRemove, setPersonToRemove] = useState<PersonRecord | null>(null);
 
   const [name, setName] = useState("");
   const [localDateTime, setLocalDateTime] = useState("");
@@ -65,7 +71,10 @@ export default function DashboardPage() {
 
   async function onAddPerson(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     setError(null);
+    setStatus("");
     try {
       // datetime-local can't hold a date-only value, so unknown-time births use a separate date
       // field and default to noon (a standard "noon chart" convention for missing birth times).
@@ -86,8 +95,12 @@ export default function DashboardPage() {
       setLatitude("");
       setLongitude("");
       await loadPeople();
+      setAddingPerson(false);
+      setStatus("Person saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add person");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -117,8 +130,22 @@ export default function DashboardPage() {
   }
 
   async function onRemovePerson(id: string): Promise<void> {
-    await peopleApi.remove(id);
-    await loadPeople();
+    if (removing) return;
+    setRemoving(id);
+    setError(null);
+    setStatus("");
+    try {
+      await peopleApi.remove(id);
+      await loadPeople();
+      if (personAId === id) setPersonAId("");
+      if (personBId === id) setPersonBId("");
+      setPersonToRemove(null);
+      setStatus("Person removed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove person");
+    } finally {
+      setRemoving(null);
+    }
   }
 
   function onPlaceSelected(place: PlaceSuggestion): void {
@@ -129,17 +156,27 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <AppHeader />
+    <div className="page-content">
 
-      {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">People &amp; connections</p>
+          <h1 className="page-title">Your workspace</h1>
+        </div>
+        <button className="btn-primary" onClick={() => { setError(null); setAddingPerson(true); }}>
+          <Plus size={18} aria-hidden="true" /> Add a person
+        </button>
+      </div>
+      {error && !addingPerson && !personToRemove && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
+      <p role="status" className="text-sm text-success">{status}</p>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="rounded-lg border border-slate-700 bg-slate-900/60 p-4">
-          <h2 className="mb-3 text-lg font-semibold">Add a person</h2>
-          <form onSubmit={onAddPerson} className="flex flex-col gap-2">
-            <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-            <label className="text-xs text-slate-400">
+      <Modal open={addingPerson} onClose={() => { if (!saving) setAddingPerson(false); }} title="Add a person">
+          {error && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
+          <form onSubmit={onAddPerson} aria-busy={saving} className="flex flex-col gap-3">
+            <label className="text-sm text-muted">Name
+              <input className="input mt-1 w-full" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            </label>
+            <label className="text-sm text-muted">
               Birth date &amp; time (local)
               {timeUnknown ? (
                 <input
@@ -159,13 +196,13 @@ export default function DashboardPage() {
                 />
               )}
             </label>
-            <label className="flex items-center gap-2 text-xs text-slate-400">
+            <label className="flex min-h-8 items-center gap-2 text-sm text-muted">
               <input type="checkbox" checked={timeUnknown} onChange={(e) => setTimeUnknown(e.target.checked)} />
               Birth time unknown (solar chart, no houses)
             </label>
             <PlaceSearchInput value={locationName} onChange={setLocationName} onSelect={onPlaceSelected} />
-            <label className="text-xs text-slate-400">
-              Timezone (auto-filled from city search, override if needed)
+            <label className="text-sm text-muted">
+              Timezone
               <input
                 className="input mt-1 w-full"
                 placeholder="IANA timezone, e.g. America/New_York"
@@ -174,88 +211,118 @@ export default function DashboardPage() {
                 required
               />
             </label>
-            <label className="text-xs text-slate-400">
-              Exact coordinates (auto-filled from city search, override if needed)
-              <div className="mt-1 flex gap-2">
-                <input className="input" placeholder="Latitude" value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
-                <input className="input" placeholder="Longitude" value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
+            <fieldset className="min-w-0 text-xs text-muted">
+              <legend>Exact coordinates</legend>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                <label>Latitude<input className="input mt-1 w-full" inputMode="decimal" value={latitude} onChange={(e) => setLatitude(e.target.value)} required /></label>
+                <label>Longitude<input className="input mt-1 w-full" inputMode="decimal" value={longitude} onChange={(e) => setLongitude(e.target.value)} required /></label>
               </div>
-            </label>
-            <button className="btn-primary" type="submit">
-              Save person
+            </fieldset>
+            <button className="btn-primary" type="submit" disabled={saving}>
+              <Plus size={18} aria-hidden="true" />
+              {saving ? "Saving…" : "Save person"}
             </button>
           </form>
-        </section>
+      </Modal>
+      <Modal open={personToRemove !== null} onClose={() => { if (!removing) setPersonToRemove(null); }} title="Remove person?">
+        <p className="mb-4 text-sm text-muted">Remove {personToRemove?.name} and their saved charts and relationship reports? This cannot be undone.</p>
+        {error && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
+        <div className="flex flex-wrap justify-end gap-2">
+          <button className="btn-secondary" disabled={removing !== null} onClick={() => setPersonToRemove(null)}>Cancel</button>
+          <button className="btn-danger" disabled={removing !== null} onClick={() => { if (personToRemove) void onRemovePerson(personToRemove.id); }}>
+            <Trash2 size={16} aria-hidden="true" /> {removing ? "Removing…" : "Remove person"}
+          </button>
+        </div>
+      </Modal>
 
-        <section className="rounded-lg border border-slate-700 bg-slate-900/60 p-4">
-          <h2 className="mb-3 text-lg font-semibold">Your people</h2>
+      <div className="workspace-layout">
+        <section className="workspace-people" aria-labelledby="people-title">
+          <div className="section-heading">
+            <h2 id="people-title"><Users size={18} aria-hidden="true" /> Your people</h2>
+            {!loading && <span className="text-sm text-muted">{people.length} saved</span>}
+          </div>
           {loading ? (
-            <p className="text-sm text-slate-400">Loading people…</p>
+            <p role="status" className="empty-state text-sm text-muted">Loading people…</p>
           ) : people.length === 0 ? (
-            <p className="text-sm text-slate-400">Add a person to view their natal chart reading.</p>
+            <div className="empty-state">
+              <Orbit size={40} strokeWidth={1} aria-hidden="true" />
+              <h3>No saved people yet</h3>
+              <button className="btn-secondary" onClick={() => { setError(null); setAddingPerson(true); }}><Plus size={16} aria-hidden="true" /> Add your first person</button>
+            </div>
           ) : (
-            <ul className="space-y-1 text-sm text-slate-300">
+            <ul className="people-list">
               {people.map((p) => (
-                <li key={p.id} className="flex items-center justify-between">
-                  <span>{p.name}</span>
-                  <span className="flex items-center gap-3">
-                    <Link className="text-xs text-aurora hover:underline" to={`/chart/${p.id}`}>
-                      View chart
-                    </Link>
-                    <button className="text-xs text-red-400 hover:underline" onClick={() => void onRemovePerson(p.id)}>
-                      Remove
-                    </button>
-                  </span>
+                <li key={p.id} className="person-row">
+                  <Link className="person-link" aria-label={`View ${p.name}'s chart`} to={`/chart/${p.id}`}>
+                    <span className="person-monogram" aria-hidden="true">{p.name.trim().slice(0, 1).toUpperCase()}</span>
+                    <span className="person-identity">
+                      <span className="person-name">{p.name}</span>
+                      <span className="person-meta">{p.localDateTime.split("T")[0]}{p.timeUnknown ? " · Time unknown" : ""}</span>
+                      {p.locationName && <span className="person-meta"><MapPin size={12} aria-hidden="true" />{p.locationName}</span>}
+                    </span>
+                    <ArrowUpRight size={18} className="person-arrow" aria-hidden="true" />
+                  </Link>
+                  <button className="icon-button remove-person" title={`Remove ${p.name}`} disabled={removing !== null} aria-label={`Remove ${p.name}`} onClick={() => { setError(null); setPersonToRemove(p); }}>
+                    <Trash2 size={16} aria-hidden="true" />
+                  </button>
                 </li>
               ))}
             </ul>
           )}
+        </section>
 
-          <h2 className="mb-3 mt-6 text-lg font-semibold">Generate a synastry report (optional)</h2>
-          <p className="mb-3 text-xs text-slate-400">
-            Synastry compares two people. If you just want one person&apos;s own reading, use "View chart" above instead.
-          </p>
+        <section className="workspace-comparison" aria-labelledby="comparison-title">
+          <div className="section-heading"><h2 id="comparison-title"><Orbit size={18} aria-hidden="true" /> Relationship reading</h2><span className="eyebrow">Synastry</span></div>
           {people.length < 2 ? (
-            <p className="text-sm text-slate-400">Add at least two people to compare.</p>
+            <p className="empty-state text-sm text-muted">Two saved people are needed for a relationship reading.</p>
           ) : (
-            <div className="flex flex-col gap-3">
-              <select className="input" value={personAId} onChange={(e) => setPersonAId(e.target.value)}>
-                <option value="">Person A</option>
+            <div className="comparison-form">
+              <div className="report-pair comparison-pair">
+              <label className="field-label" htmlFor="person-a">Person A
+              <select id="person-a" className="input" value={personAId} onChange={(e) => setPersonAId(e.target.value)}>
+                <option value="">Select person</option>
                 {people.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
               </select>
-              <select className="input" value={personBId} onChange={(e) => setPersonBId(e.target.value)}>
-                <option value="">Person B</option>
+              </label>
+              <label className="field-label" htmlFor="person-b">Person B
+              <select id="person-b" className="input" value={personBId} onChange={(e) => setPersonBId(e.target.value)}>
+                <option value="">Select person</option>
                 {people.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
               </select>
+              </label>
+              </div>
 
               <fieldset className="flex flex-col gap-1">
                 <legend className="text-xs text-slate-400">Zodiac</legend>
-                <div className="flex overflow-hidden rounded border border-slate-600 self-start">
+                <div className="segmented-control">
                   <button
                     type="button"
                     onClick={() => setZodiacMode("tropical")}
-                    className={`px-3 py-1 text-sm ${zodiacMode === "tropical" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+                    aria-pressed={zodiacMode === "tropical"}
+                    className="px-3 py-1 text-sm"
                   >
                     Tropical
                   </button>
                   <button
                     type="button"
                     onClick={() => setZodiacMode("sidereal")}
-                    className={`px-3 py-1 text-sm ${zodiacMode === "sidereal" ? "bg-aurora text-midnight" : "bg-slate-900 text-slate-300 hover:bg-slate-800"}`}
+                    aria-pressed={zodiacMode === "sidereal"}
+                    className="px-3 py-1 text-sm"
                   >
                     Sidereal
                   </button>
                 </div>
                 {zodiacMode === "sidereal" && (
                   <select
+                    aria-label="Ayanamsa"
                     className="input mt-1"
                     value={ayanamsa}
                     onChange={(e) => setAyanamsa(e.target.value as Ayanamsa)}
@@ -271,8 +338,8 @@ export default function DashboardPage() {
 
               <fieldset className="flex flex-col gap-1">
                 <legend className="text-xs text-slate-400">Reading type</legend>
-                <div className="flex gap-4 text-sm text-slate-200">
-                  <label className="flex items-center gap-1.5">
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                  <label className="flex min-h-8 items-center gap-1.5">
                     <input
                       type="radio"
                       name="relationshipType"
@@ -281,7 +348,7 @@ export default function DashboardPage() {
                     />
                     Romantic
                   </label>
-                  <label className="flex items-center gap-1.5">
+                  <label className="flex min-h-8 items-center gap-1.5">
                     <input
                       type="radio"
                       name="relationshipType"
@@ -293,7 +360,7 @@ export default function DashboardPage() {
                 </div>
               </fieldset>
 
-              <label className="text-xs text-slate-400">
+              <label className="text-sm text-muted">
                 Reading style
                 <select
                   className="input mt-1 w-full"
@@ -310,13 +377,15 @@ export default function DashboardPage() {
               {readingStyle === "other" && (
                 <input
                   className="input"
+                  aria-label="Custom reading style"
                   placeholder={`Describe the style you want (e.g. \u2018noir detective narration\u2019)`}
                   value={customStyleText}
                   onChange={(e) => setCustomStyleText(e.target.value)}
                 />
               )}
 
-              <button className="btn-primary" disabled={generating} onClick={() => void onGenerateSynastry()}>
+              <button className="btn-primary" disabled={generating || !personAId || !personBId || personAId === personBId} onClick={() => void onGenerateSynastry()}>
+                <Orbit size={18} aria-hidden="true" />
                 {generating ? "Generating…" : "Generate synastry report"}
               </button>
             </div>

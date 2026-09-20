@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ChartData } from "@astro/shared";
+import { ChartDataList } from "../ui/ChartDataList.js";
 
 interface HouseOccupancyChartProps {
   chart: ChartData;
@@ -16,20 +17,24 @@ export function HouseOccupancyChart({ chart, onSelect }: HouseOccupancyChartProp
   }
 
   return (
+    <div>
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={counts}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-        <XAxis dataKey="house" tick={{ fill: "#cbd5e1", fontSize: 12 }} />
-        <YAxis allowDecimals={false} tick={{ fill: "#cbd5e1", fontSize: 12 }} />
-        <Tooltip contentStyle={{ background: "#0b0c1a", border: "1px solid #334155" }} labelFormatter={(h) => `House ${h}`} />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" />
+        <XAxis dataKey="house" tick={{ fill: "rgb(var(--color-muted))", fontSize: 12 }} />
+        <YAxis allowDecimals={false} tick={{ fill: "rgb(var(--color-muted))", fontSize: 12 }} />
+        <Tooltip contentStyle={{ background: "rgb(var(--color-elevated))", border: "1px solid rgb(var(--color-border))", color: "rgb(var(--color-text))" }} itemStyle={{ color: "rgb(var(--color-text))" }} labelFormatter={(house) => `House ${house}`} />
         <Bar
+          isAnimationActive={false}
           dataKey="count"
-          fill="#38bdf8"
+          fill="rgb(var(--color-data-house))"
           radius={[4, 4, 0, 0]}
           cursor={onSelect ? "pointer" : undefined}
           onClick={(entry) => onSelect?.((entry as unknown as { house: number }).house)}
         />
       </BarChart>
     </ResponsiveContainer>
+    <ChartDataList label="House counts" entries={counts.map(({ house, count }) => ({ label: `House ${house}`, value: count, onSelect: onSelect ? () => onSelect(house) : undefined }))} />
+    </div>
   );
 }

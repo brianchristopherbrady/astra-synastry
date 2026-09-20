@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useId } from "react";
+import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useModalDialog } from "./useModalDialog.js";
 
 interface ModalProps {
   open: boolean;
@@ -8,44 +10,45 @@ interface ModalProps {
   children: ReactNode;
 }
 
-/** Minimal accessible overlay: closes on Escape or backdrop click. */
 export function Modal({ open, onClose, title, children }: ModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    function onKeyDown(e: KeyboardEvent): void {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  const dialogRef = useModalDialog(open);
+  const titleId = useId();
 
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-      onClick={onClose}
-      role="presentation"
+    <dialog
+      ref={dialogRef}
+      className="ds-dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }
+      }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
+      }}
     >
-      <div
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 p-5 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-stardust">{title}</h2>
+        <div className="dialog-heading">
+          <h2 id={titleId} className="text-lg font-semibold text-stardust">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded border border-slate-600 px-2 py-0.5 text-sm text-slate-300 hover:bg-slate-800"
+            title="Close"
+            className="icon-button"
           >
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
         {children}
-      </div>
-    </div>
+    </dialog>
   );
 }

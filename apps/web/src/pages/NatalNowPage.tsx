@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { HOUSE_MEANINGS } from "../content/glossary.js";
 import { chartsApi, type ChartRecord } from "../api/chartsApi.js";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
@@ -9,11 +9,11 @@ import { KeyPlacementsSummary } from "../components/chart/KeyPlacementsSummary.j
 import { TransitList } from "../components/chart/TransitList.js";
 import { ElementRadarChart } from "../components/dashboard/ElementRadarChart.js";
 import { ModalityBarChart } from "../components/dashboard/ModalityBarChart.js";
-import { AppHeader } from "../components/layout/AppHeader.js";
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
 import { computeChartBalance } from "../lib/chartBalance.js";
 import type { HellenisticProfile, NatalTransitReport, ProgressedChartReport } from "@astro/shared";
 import { ALL_POINTS, POINT_GLYPHS, POINT_LABELS } from "@astro/shared";
+import { ChartNavigation } from "../components/layout/ChartNavigation.js";
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -34,6 +34,9 @@ export default function NatalNowPage() {
   const [progression, setProgression] = useState<ProgressedChartReport | null>(null);
   const [profectionDate, setProfectionDate] = useState<string>(todayIso());
   const [hellenistic, setHellenistic] = useState<HellenisticProfile | null>(null);
+  const [transitsError, setTransitsError] = useState<string | null>(null);
+  const [progressionError, setProgressionError] = useState<string | null>(null);
+  const [profectionError, setProfectionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!personId) return;
@@ -47,41 +50,51 @@ export default function NatalNowPage() {
 
   useEffect(() => {
     if (!personId) return;
+    let active = true;
+    setTransits(null);
+    setTransitsError(null);
     chartsApi
       .transits(personId, toUtcNoon(transitsDate))
-      .then(setTransits)
-      .catch(() => setTransits(null));
+      .then((result) => { if (active) setTransits(result); })
+      .catch(() => { if (active) setTransitsError("Transits are unavailable. Choose another date or reload to try again."); });
+    return () => { active = false; };
   }, [personId, transitsDate]);
 
   useEffect(() => {
     if (!personId) return;
+    let active = true;
+    setProgression(null);
+    setProgressionError(null);
     chartsApi
       .progressions(personId, toUtcNoon(progressionDate))
-      .then(setProgression)
-      .catch(() => setProgression(null));
+      .then((result) => { if (active) setProgression(result); })
+      .catch(() => { if (active) setProgressionError("Progressions are unavailable. Choose another date or reload to try again."); });
+    return () => { active = false; };
   }, [personId, progressionDate]);
 
   useEffect(() => {
     if (!personId) return;
+    let active = true;
+    setHellenistic(null);
+    setProfectionError(null);
     chartsApi
       .hellenistic(personId, toUtcNoon(profectionDate))
-      .then(setHellenistic)
-      .catch(() => setHellenistic(null));
+      .then((result) => { if (active) setHellenistic(result); })
+      .catch(() => { if (active) setProfectionError("Annual profection is unavailable for this date."); });
+    return () => { active = false; };
   }, [personId, profectionDate]);
 
   if (error) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
-        <AppHeader />
-        <p className="text-red-400">{error}</p>
+      <div className="page-content">
+        <p role="alert" className="text-danger">{error}</p>
       </div>
     );
   }
   if (!chart || !personId) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
-        <AppHeader />
-        <p className="text-slate-400">Loading…</p>
+      <div className="page-content">
+        <p role="status" className="text-muted">Loading chart…</p>
       </div>
     );
   }
@@ -90,29 +103,27 @@ export default function NatalNowPage() {
   const transitBalance = transits ? computeChartBalance(transits.transitingChart) : null;
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <AppHeader />
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-stardust">Now: Transits &amp; Progressions</h1>
-        <Link to={`/chart/${personId}`} className="text-sm text-aurora hover:underline">
-          &larr; Back to {personName}&apos;s chart
-        </Link>
+    <div className="page-content">
+      <div className="page-heading">
+        <div><p className="eyebrow">Transits &amp; progressions</p><h1 className="page-title">{personName}</h1></div>
       </div>
+      <ChartNavigation basePath={`/chart/${personId}`} />
 
       <section className="mb-8">
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xl font-semibold text-stardust">Current transits</h2>
           <input
             type="date"
             value={transitsDate}
-            onChange={(e) => setTransitsDate(e.target.value)}
-            className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+            aria-label="Transit date"
+            onChange={(e) => { if (e.target.value) setTransitsDate(e.target.value); }}
+            className="input"
           />
         </div>
         <p className="mb-4 text-sm text-slate-400">Where the sky is today compared to {personName}&apos;s natal chart.</p>
 
         {transits ? (
-          <div className="grid gap-6 md:grid-cols-[minmax(260px,340px)_1fr] md:items-start">
+          <div className="report-layout">
             <div className="flex min-w-0 flex-col items-center gap-3">
               <ChartWheel
                 innerChart={chart}
@@ -127,19 +138,19 @@ export default function NatalNowPage() {
               </p>
             </div>
 
-            <div className="flex min-w-0 flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <div className="report-details">
+              <div className="report-pair">
+                <section className="report-section">
                   <h3 className="mb-2 text-sm font-semibold">Today's sky: element balance</h3>
                   {transitBalance && <ElementRadarChart balance={transitBalance.elementBalance} />}
                 </section>
-                <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+                <section className="report-section">
                   <h3 className="mb-2 text-sm font-semibold">Today's sky: modality balance</h3>
                   {transitBalance && <ModalityBarChart balance={transitBalance.modalityBalance} />}
                 </section>
               </div>
 
-              <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+              <section className="report-section">
                 <h3 className="mb-2 text-sm font-semibold">Where transiting planets are visiting</h3>
                 {transits.houseOverlay.length === 0 ? (
                   <p className="text-sm text-slate-400">Houses aren&apos;t available for this chart (birth time unknown).</p>
@@ -157,25 +168,26 @@ export default function NatalNowPage() {
                 )}
               </section>
 
-              <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+              <section className="report-section">
                 <h3 className="mb-2 text-sm font-semibold">Transit timeline</h3>
                 <TransitList hits={transits.hits} targetLabel={`${personName}'s chart`} />
               </section>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-400">Loading transits…</p>
+          <p role={transitsError ? "alert" : "status"} className={`text-sm ${transitsError ? "text-danger" : "text-muted"}`}>{transitsError ?? "Loading transits…"}</p>
         )}
       </section>
 
       <section>
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xl font-semibold text-stardust">Secondary progressions</h2>
           <input
             type="date"
             value={progressionDate}
-            onChange={(e) => setProgressionDate(e.target.value)}
-            className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+            aria-label="Progression date"
+            onChange={(e) => { if (e.target.value) setProgressionDate(e.target.value); }}
+            className="input"
           />
         </div>
         <p className="mb-4 text-sm text-slate-400">
@@ -183,25 +195,25 @@ export default function NatalNowPage() {
         </p>
 
         {progression ? (
-          <div className="grid gap-6 md:grid-cols-[minmax(260px,340px)_1fr] md:items-start">
+          <div className="report-layout">
             <div className="flex min-w-0 flex-col items-center gap-3">
               <ChartWheel innerChart={progression.chart} />
               <KeyPlacementsSummary chart={progression.chart} personName={`${personName} (progressed)`} />
             </div>
 
-            <div className="flex min-w-0 flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+            <div className="report-details">
+              <div className="report-pair">
+                <section className="report-section">
                   <h3 className="mb-2 text-sm font-semibold">Progressed element balance</h3>
                   <ElementRadarChart balance={computeChartBalance(progression.chart).elementBalance} />
                 </section>
-                <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+                <section className="report-section">
                   <h3 className="mb-2 text-sm font-semibold">Progressed modality balance</h3>
                   <ModalityBarChart balance={computeChartBalance(progression.chart).modalityBalance} />
                 </section>
               </div>
 
-              <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+              <section className="report-section">
                 <h3 className="mb-2 text-sm font-semibold">Progressed &harr; natal aspects</h3>
                 {progression.crossAspectsToNatal.length === 0 ? (
                   <p className="text-sm text-slate-400">No notable aspects between the progressed and natal chart right now.</p>
@@ -212,18 +224,19 @@ export default function NatalNowPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-400">Loading progressed chart…</p>
+          <p role={progressionError ? "alert" : "status"} className={`text-sm ${progressionError ? "text-danger" : "text-muted"}`}>{progressionError ?? "Loading progressed chart…"}</p>
         )}
       </section>
 
       <section className="mt-8">
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xl font-semibold text-stardust">Annual profection</h2>
           <input
             type="date"
             value={profectionDate}
-            onChange={(e) => setProfectionDate(e.target.value)}
-            className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+            aria-label="Profection date"
+            onChange={(e) => { if (e.target.value) setProfectionDate(e.target.value); }}
+            className="input"
           />
         </div>
         <p className="mb-4 text-sm text-slate-400">
@@ -232,7 +245,7 @@ export default function NatalNowPage() {
           the year."
         </p>
         {hellenistic ? (
-          <section className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+          <section className="report-section">
             <p className="text-sm text-slate-200">
               At age <span className="font-semibold text-aurora">{hellenistic.profection.age}</span>,{" "}
               {personName} is in a <span className="capitalize text-aurora">{hellenistic.profection.profectedSign}</span>{" "}
@@ -245,7 +258,8 @@ export default function NatalNowPage() {
             </p>
           </section>
         ) : (
-          <p className="text-sm text-slate-400">Loading profection…</p>
+          person?.timeUnknown ? <p className="text-sm text-muted">Annual profections require a known birth time.</p> :
+          <p role={profectionError ? "alert" : "status"} className={`text-sm ${profectionError ? "text-danger" : "text-muted"}`}>{profectionError ?? "Loading profection…"}</p>
         )}
       </section>
 

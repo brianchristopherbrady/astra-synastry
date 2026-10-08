@@ -9,8 +9,14 @@ export interface AiMessage {
   content: string;
 }
 
+export interface AiCompletionOptions {
+  /** Constrains the response to JSON matching this schema (provider-native structured output). */
+  jsonSchema?: { name: string; schema: Record<string, unknown> };
+  maxTokens?: number;
+}
+
 export interface AiProvider {
   name: AiProviderName;
-  streamCompletion(messages: AiMessage[], callbacks: AiStreamCallbacks): Promise<string>;
+  streamCompletion(messages: AiMessage[], callbacks: AiStreamCallbacks, options?: AiCompletionOptions): Promise<string>;
 }
 

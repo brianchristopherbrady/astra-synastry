@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import ReactMarkdown from "react-markdown";
 import type { AiProviderName } from "@astro/shared";
 import { useAiStream } from "../../hooks/useAiStream.js";
+import { AiMarkdown } from "./AiMarkdown.js";
 
 interface AiAnalysisPanelProps {
   /** API path to POST to for streaming, e.g. `/ai/synastry/:id` or `/ai/natal/:personId?houseSystem=...`. */
@@ -41,9 +41,7 @@ export function AiAnalysisPanel({ endpoint, title = "AI Analysis" }: AiAnalysisP
         </div>
       </div>
       {error && <p className="break-words text-sm text-red-400">{error}</p>}
-      <div className="prose prose-invert prose-sm max-w-none">
-        <ReactMarkdown>{text || (streaming ? "Generating analysis…" : "No analysis yet.")}</ReactMarkdown>
-      </div>
+      <AiMarkdown>{text || (streaming ? "Generating analysis…" : "No analysis yet.")}</AiMarkdown>
       {streaming && <p className="mt-2 text-xs text-slate-500">Streaming…</p>}
     </div>
   );

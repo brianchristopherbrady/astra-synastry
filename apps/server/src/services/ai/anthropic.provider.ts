@@ -1,11 +1,11 @@
 import { config } from "../../config.js";
 import { readAnthropicSse } from "./sse.js";
-import type { AiMessage, AiProvider, AiStreamCallbacks } from "./types.js";
+import type { AiCompletionOptions, AiMessage, AiProvider, AiStreamCallbacks } from "./types.js";
 
 export class AnthropicProvider implements AiProvider {
   name = "anthropic" as const;
 
-  async streamCompletion(messages: AiMessage[], callbacks: AiStreamCallbacks): Promise<string> {
+  async streamCompletion(messages: AiMessage[], callbacks: AiStreamCallbacks, options: AiCompletionOptions = {}): Promise<string> {
     if (!config.ai.anthropicApiKey) {
       throw new Error("ANTHROPIC_API_KEY is not configured on the server");
     }
@@ -26,9 +26,10 @@ export class AnthropicProvider implements AiProvider {
       body: JSON.stringify({
         // Flagship model (not the speed-optimized Sonnet/Haiku tiers) — quality over cost for infrequent use.
         model: "claude-opus-5",
-        max_tokens: 4000,
+        max_tokens: options.maxTokens ?? 4000,
         stream: true,
         ...(system ? { system } : {}),
+        ...(options.jsonSchema ? { output_config: { format: { type: "json_schema", schema: options.jsonSchema.schema } } } : {}),
         messages: conversation,
       }),
     });

@@ -165,6 +165,20 @@
   .chat-width input { min-inline-size: 0; min-block-size: 1.5rem; flex: 1; accent-color: rgb(var(--color-action)); }
   .chat-messages { flex: 1; min-block-size: 0; overflow: auto; overscroll-behavior: contain; padding: var(--space-3); overflow-wrap: anywhere; }
   .chat-messages pre { max-inline-size: 100%; overflow: auto; }
+  .ai-markdown { line-height: 1.6; overflow-wrap: anywhere; }
+  .ai-markdown > * + * { margin-block-start: var(--space-3); }
+  .ai-markdown h3 { margin-block-start: var(--space-6); padding-block-start: var(--space-4); border-block-start: 1px solid rgb(var(--color-border) / 0.5); font: 500 1.25rem/1.25 var(--font-display); color: rgb(var(--color-accent)); }
+  .ai-markdown h3:first-child { margin-block-start: 0; padding-block-start: 0; border-block-start: 0; }
+  .ai-markdown h4 { margin-block-start: var(--space-4); font-weight: var(--weight-strong); color: rgb(var(--color-accent)); }
+  .ai-markdown ul, .ai-markdown ol { padding-inline-start: 1.25rem; }
+  .ai-markdown ul { list-style: disc; }
+  .ai-markdown ol { list-style: decimal; }
+  .ai-markdown li + li { margin-block-start: var(--space-1); }
+  .ai-markdown li::marker { color: rgb(var(--color-accent)); }
+  .ai-markdown strong { font-weight: var(--weight-strong); color: rgb(var(--color-text)); }
+  .ai-markdown em { font-style: italic; }
+  .ai-markdown blockquote { padding: var(--space-2) var(--space-3); border-inline-start: 2px solid rgb(var(--color-action)); background: rgb(var(--color-action) / 0.06); font-style: italic; }
+  .ai-markdown hr { border: 0; border-block-start: 1px solid rgb(var(--color-border) / 0.5); }
   .chat-composer { display: flex; flex: none; align-items: end; gap: var(--space-2); border-block-start: 1px solid rgb(var(--color-border)); padding: var(--space-3); padding-block-end: max(var(--space-3), env(safe-area-inset-bottom)); }
   .app-page { max-inline-size: var(--content-width); margin-inline: auto; padding: var(--space-4); padding-block-end: 6rem; }
   .page-title { font: 500 2rem/1.1 var(--font-display); color: rgb(var(--color-text)); margin-block-end: var(--space-2); }

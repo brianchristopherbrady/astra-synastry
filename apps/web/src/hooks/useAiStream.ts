@@ -44,13 +44,13 @@ export function useAiStream() {
             currentEvent = line.slice(6).trim();
           } else if (line.startsWith("data:")) {
             const payload = JSON.parse(line.slice(5).trim()) as {
-              token?: string;
               text?: string;
               error?: string;
               archetypeName?: string | null;
             };
-            if (currentEvent === "token" && payload.token) {
-              setText((prev) => prev + payload.token);
+            // Snapshots carry the full server-formatted markdown so far, so they replace rather than append.
+            if (currentEvent === "snapshot" && payload.text !== undefined) {
+              setText(payload.text);
             } else if ((currentEvent === "done" || currentEvent === "cached") && payload.text !== undefined) {
               setText(payload.text);
               if (payload.archetypeName !== undefined) setArchetypeName(payload.archetypeName);

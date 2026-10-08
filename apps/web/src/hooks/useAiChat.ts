@@ -6,7 +6,7 @@ export interface ChatMessage {
   content: string;
 }
 
-/** Manages a multi-turn AI conversation over SSE, streaming tokens into the last assistant message. */
+/** Manages a multi-turn AI conversation over SSE, replacing the last assistant message with each formatted snapshot. */
 export function useAiChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
@@ -29,7 +29,8 @@ export function useAiChat() {
   const send = useCallback(async (endpoint: string, userText: string, provider?: AiProviderName) => {
     setError(null);
     setStreaming(true);
-    const history = messagesRef.current;
+    // Failed turns leave an empty assistant placeholder, which the server rightly rejects as history.
+    const history = messagesRef.current.filter((message) => message.content.trim());
     applyMessages((prev) => [...prev, { role: "user", content: userText }, { role: "assistant", content: "" }]);
 
     const controller = new AbortController();
@@ -71,10 +72,8 @@ export function useAiChat() {
           if (line.startsWith("event:")) {
             currentEvent = line.slice(6).trim();
           } else if (line.startsWith("data:")) {
-            const payload = JSON.parse(line.slice(5).trim()) as { token?: string; text?: string; error?: string };
-            if (currentEvent === "token" && payload.token) {
-              updateLastAssistant((content) => content + payload.token);
-            } else if (currentEvent === "done" && payload.text !== undefined) {
+            const payload = JSON.parse(line.slice(5).trim()) as { text?: string; error?: string };
+            if ((currentEvent === "snapshot" || currentEvent === "done") && payload.text !== undefined) {
               updateLastAssistant(() => payload.text!);
             } else if (currentEvent === "error") {
               setError(payload.error ?? "AI request failed");
@@ -87,6 +86,10 @@ export function useAiChat() {
         setError(err instanceof Error ? err.message : "AI request failed");
       }
     } finally {
+      applyMessages((prev) => {
+        const last = prev[prev.length - 1];
+        return last && last.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
+      });
       setStreaming(false);
     }
   }, []);

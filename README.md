@@ -51,6 +51,12 @@ pnpm dev:web      # http://localhost:5173 (proxies /api to the server)
   and call `configureEphemeris({ mode: "swiss", ephePath: "/path/to/ephe" })` before computing charts.
 - AI analysis requires `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` in `.env`. Without a key configured,
   a placeholder analysis is returned so the rest of the app remains usable without any AI account.
+- AI readings and chat answers use provider-native structured output (JSON schema). The model only
+  supplies content (sections of paragraph, bullet, numbered, and quote blocks); the server
+  (`apps/server/src/services/ai/reading-format.ts`) validates it, repairs or drops invalid parts,
+  strips any markdown/links/HTML from text, enforces canonical section order and size limits, and
+  renders the markdown itself. Truncated output is shown but never cached. Changing the reading
+  format requires bumping `PROMPT_VERSION` so cached readings regenerate.
 - Geocoding/timezone resolution uses free, keyless services (OpenStreetMap Nominatim + the local `geo-tz`
   database), so no additional API keys are needed for birth-place lookup.
 
@@ -58,6 +64,7 @@ pnpm dev:web      # http://localhost:5173 (proxies /api to the server)
 
 ```powershell
 pnpm --filter @astro/astro-engine test   # ephemeris/aspect/synastry accuracy & integration tests
+pnpm --filter @astro/server test         # AI output schema, sanitization, and formatting guardrails
 pnpm --filter @astro/web test            # UI interaction and accessibility contracts
 pnpm --filter @astro/web build           # frontend typecheck and production bundle
 ```

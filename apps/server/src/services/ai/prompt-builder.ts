@@ -1,7 +1,39 @@
 import { POINT_LABELS } from "@astro/shared";
 import type { AspectHit, ChartData, ReadingStyle, RelationshipType, SynastryData } from "@astro/shared";
 
-export const PROMPT_VERSION = "v2";
+export const PROMPT_VERSION = "v3";
+
+export const NATAL_SECTIONS = [
+  "Overall Summary",
+  "Personality & Identity",
+  "Emotional Nature",
+  "Communication & Mind",
+  "Love & Relating",
+  "Career & Purpose",
+  "Growth & Challenges",
+] as const;
+
+export function synastrySections(relationshipType: RelationshipType = "romantic"): string[] {
+  const bond = relationshipType === "friendship" ? "Camaraderie & Shared Adventure" : "Attraction & Passion";
+  return ["Overall Summary", "Communication", "Emotional Connection", bond, "Long-Term Stability", "Growth & Challenges"];
+}
+
+const TEXT_RULES =
+  "Text fields are plain prose: never include headings, list markers, numbering, links, tables, code, or HTML. The only inline formatting allowed is **bold** for named placements, aspects, and scores, and *italic* for occasional emphasis.";
+
+function reportFormatRules(sections: readonly string[]): string {
+  return [
+    `Return the reading as JSON matching the provided schema. Include each of these sections exactly once, in this order: ${sections.join(", ")}.`,
+    "Give each section 2-4 blocks. Use paragraph blocks of 2-4 sentences for interpretation, a bullets block when listing several placements or aspects (one per item), numbered only for ranked or sequential points, and at most one quote block in the whole reading for a single memorable line.",
+    TEXT_RULES,
+  ].join(" ");
+}
+
+const CHAT_FORMAT_RULES = [
+  "Respond as JSON matching the provided schema.",
+  "For a simple answer use one section with an empty heading and 1-3 short paragraph blocks; add short headings only when the answer has distinct parts. Use a bullets block for lists of placements or aspects.",
+  TEXT_RULES,
+].join(" ");
 
 function describeChartPoints(chart: ChartData): string {
   return Object.values(chart.points)
@@ -60,7 +92,6 @@ export function buildSynastryPrompt(
   readingStyle: ReadingStyle = "clever",
   customStyleText?: string,
 ): string {
-  const finalSection = relationshipType === "friendship" ? "Camaraderie & Shared Adventure" : "Attraction & Passion";
   const lines: string[] = [
     `You are an expert, grounded astrologer writing a synastry (relationship compatibility) analysis for ${personAName} and ${personBName}.`,
     relationshipFraming(relationshipType),
@@ -80,8 +111,9 @@ export function buildSynastryPrompt(
     `Overall: ${synastry.compatibilityScore.overall}`,
     ...Object.entries(synastry.compatibilityScore.categories).map(([category, score]) => `${category}: ${score}`),
     "",
-    `Begin your response with EXACTLY one line, with no other text before it, in this precise format: "ARCHETYPE: <name>" where <name> is a short, vivid 2-6 word archetypal or mythic name for this SPECIFIC pairing (not a generic zodiac combination name \u2014 make it feel bespoke to their actual placements/aspects). Leave one blank line after it, then write the report.`,
-    `Write the report in markdown with these sections: Overall Summary, Communication, Emotional Connection, ${finalSection}, Long-Term Stability, Growth & Challenges. Reference specific aspects/placements from the data above to support each point.`,
+    `Set archetypeName to a short, vivid 2-6 word archetypal or mythic name for this SPECIFIC pairing (not a generic zodiac combination name \u2014 make it feel bespoke to their actual placements/aspects).`,
+    `Reference specific aspects/placements from the data above to support each point.`,
+    reportFormatRules(synastrySections(relationshipType)),
   ];
   return lines.join("\n");
 }
@@ -106,7 +138,8 @@ export function buildNatalPrompt(chart: ChartData, personName: string): string {
     `## Detected aspect patterns`,
     describePatterns(chart),
     "",
-    "Write a warm, insightful, and honest natal chart reading in markdown with these sections: Overall Summary, Personality & Identity, Emotional Nature, Communication & Mind, Love & Relating, Career & Purpose, Growth & Challenges. Reference specific placements/aspects from the data above to support each point.",
+    "Write a warm, insightful, and honest natal chart reading. Reference specific placements/aspects from the data above to support each point.",
+    reportFormatRules(NATAL_SECTIONS),
   ];
   return lines.join("\n");
 }
@@ -116,6 +149,7 @@ export function buildNatalChatContext(chart: ChartData, personName: string): str
   const lines: string[] = [
     `You are an expert, grounded astrologer answering questions about ${personName}'s natal chart.`,
     `Base every answer STRICTLY on the computed data below. Do not invent any placement, aspect, or house position that is not explicitly listed. If houses are missing (birth time unknown), say so rather than guessing. Keep answers conversational and reasonably concise unless the user asks for more depth.`,
+    CHAT_FORMAT_RULES,
     "",
     `## ${personName}'s placements`,
     describeChartPoints(chart),
@@ -143,6 +177,7 @@ export function buildSynastryChatContext(
     relationshipFraming(relationshipType),
     styleInstruction(readingStyle, customStyleText),
     `Base every answer STRICTLY on the computed data below. Do not invent any placement, aspect, or house position that is not explicitly listed. Keep answers conversational and reasonably concise unless the user asks for more depth.`,
+    CHAT_FORMAT_RULES,
     "",
     `## ${personAName}'s placements`,
     describeChartPoints(synastry.personAChart),
@@ -158,12 +193,4 @@ export function buildSynastryChatContext(
     ...Object.entries(synastry.compatibilityScore.categories).map(([category, score]) => `${category}: ${score}`),
   ];
   return lines.join("\n");
-}
-
-/** Pulls the leading "ARCHETYPE: <name>" line (if present) off an AI synastry response, returning the
- * archetype name separately from the remaining report body. Tolerant of the AI omitting it entirely. */
-export function extractArchetype(fullText: string): { archetypeName: string | null; body: string } {
-  const match = /^ARCHETYPE:\s*(.+?)\s*\r?\n+/.exec(fullText);
-  if (!match) return { archetypeName: null, body: fullText };
-  return { archetypeName: match[1]!.trim(), body: fullText.slice(match[0].length) };
 }

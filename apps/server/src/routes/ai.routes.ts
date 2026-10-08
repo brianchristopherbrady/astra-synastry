@@ -8,10 +8,13 @@ import {
   buildNatalPrompt,
   buildSynastryChatContext,
   buildSynastryPrompt,
-  extractArchetype,
+  NATAL_SECTIONS,
   PROMPT_VERSION,
+  synastrySections,
 } from "../services/ai/prompt-builder.js";
 import { resolveProvider } from "../services/ai/ai.service.js";
+import { buildReadingSchema, formatReading, type FormattedReading, type ReadingSpec } from "../services/ai/reading-format.js";
+import type { AiMessage, AiProvider } from "../services/ai/types.js";
 import { getOrComputeChart } from "../services/chart.service.js";
 
 export const aiRouter: Router = Router();
@@ -21,10 +24,11 @@ const bodySchema = z.object({
   force: z.boolean().optional(),
 });
 
-const chatMessageSchema = z.object({
-  role: z.enum(["user", "assistant"]),
-  content: z.string().min(1).max(8000),
-});
+// Assistant turns include the seeded full reading, which routinely exceeds a typical user message.
+const chatMessageSchema = z.discriminatedUnion("role", [
+  z.object({ role: z.literal("user"), content: z.string().min(1).max(8000) }),
+  z.object({ role: z.literal("assistant"), content: z.string().min(1).max(24000) }),
+]);
 const chatBodySchema = z.object({
   provider: z.enum(["openai", "anthropic"]).optional(),
   messages: z.array(chatMessageSchema).min(1).max(40),
@@ -39,6 +43,43 @@ function writeSseError(res: import("express").Response, err: unknown): void {
   const message = err instanceof Error ? err.message : "AI analysis failed";
   res.write(`event: error\ndata: ${JSON.stringify({ error: message })}\n\n`);
   res.end();
+}
+
+const SNAPSHOT_INTERVAL_MS = 200;
+const REPORT_MAX_TOKENS = 8000;
+const CHAT_SPEC: ReadingSpec = { schemaName: "chat_answer", archetype: false, headingLevel: 3 };
+
+/** Streams schema-constrained JSON from the provider as formatted markdown snapshots; resolves with the validated final reading. */
+async function streamFormattedReading(
+  res: import("express").Response,
+  provider: AiProvider,
+  messages: AiMessage[],
+  spec: ReadingSpec,
+  maxTokens?: number,
+): Promise<FormattedReading> {
+  let raw = "";
+  let lastSnapshot = "";
+  let lastSentAt = 0;
+  const fullText = await provider.streamCompletion(
+    messages,
+    {
+      onToken: (token) => {
+        raw += token;
+        const now = Date.now();
+        if (now - lastSentAt < SNAPSHOT_INTERVAL_MS) return;
+        lastSentAt = now;
+        const snapshot = formatReading(raw, spec, true);
+        if (snapshot && snapshot.markdown !== lastSnapshot) {
+          lastSnapshot = snapshot.markdown;
+          res.write(`event: snapshot\ndata: ${JSON.stringify({ text: snapshot.markdown })}\n\n`);
+        }
+      },
+    },
+    { jsonSchema: { name: spec.schemaName, schema: buildReadingSchema(spec) }, maxTokens },
+  );
+  const reading = formatReading(fullText, spec);
+  if (!reading) throw new Error("The AI response could not be formatted. Please try again.");
+  return reading;
 }
 
 aiRouter.post("/synastry/:id", aiRateLimiter, async (req, res, next) => {
@@ -67,30 +108,28 @@ aiRouter.post("/synastry/:id", aiRateLimiter, async (req, res, next) => {
     }
 
     const synastryData = JSON.parse(report.dataJson) as SynastryData;
+    const relationshipType = report.relationshipType as "romantic" | "friendship";
     const prompt = buildSynastryPrompt(
       synastryData,
       report.personA.name,
       report.personB.name,
-      report.relationshipType as "romantic" | "friendship",
+      relationshipType,
       report.readingStyle as "clever" | "flirty" | "funny" | "mythic" | "brutal" | "other",
       report.customStyleText,
     );
     const aiProvider = resolveProvider(providerName);
+    const spec: ReadingSpec = { schemaName: "synastry_reading", sections: synastrySections(relationshipType), archetype: true, headingLevel: 2 };
 
     try {
-      const rawText = await aiProvider.streamCompletion([{ role: "user", content: prompt }], {
-        onToken: (token) => {
-          res.write(`event: token\ndata: ${JSON.stringify({ token })}\n\n`);
-        },
-      });
-      const { archetypeName, body } = extractArchetype(rawText);
+      const reading = await streamFormattedReading(res, aiProvider, [{ role: "user", content: prompt }], spec, REPORT_MAX_TOKENS);
+      if (reading.complete) {
+        await prisma.synastryReport.update({
+          where: { id: report.id },
+          data: { aiAnalysisMarkdown: reading.markdown, aiProvider: providerName, aiPromptVersion: PROMPT_VERSION, archetypeName: reading.archetypeName },
+        });
+      }
 
-      await prisma.synastryReport.update({
-        where: { id: report.id },
-        data: { aiAnalysisMarkdown: body, aiProvider: providerName, aiPromptVersion: PROMPT_VERSION, archetypeName },
-      });
-
-      res.write(`event: done\ndata: ${JSON.stringify({ text: body, archetypeName })}\n\n`);
+      res.write(`event: done\ndata: ${JSON.stringify({ text: reading.markdown, archetypeName: reading.archetypeName })}\n\n`);
       res.end();
     } catch (streamErr) {
       writeSseError(res, streamErr);
@@ -126,20 +165,18 @@ aiRouter.post("/natal/:personId", aiRateLimiter, async (req, res, next) => {
 
     const prompt = buildNatalPrompt(record.chart, person.name);
     const aiProvider = resolveProvider(providerName);
+    const spec: ReadingSpec = { schemaName: "natal_reading", sections: NATAL_SECTIONS, archetype: false, headingLevel: 2 };
 
     try {
-      const fullText = await aiProvider.streamCompletion([{ role: "user", content: prompt }], {
-        onToken: (token) => {
-          res.write(`event: token\ndata: ${JSON.stringify({ token })}\n\n`);
-        },
-      });
+      const reading = await streamFormattedReading(res, aiProvider, [{ role: "user", content: prompt }], spec, REPORT_MAX_TOKENS);
+      if (reading.complete) {
+        await prisma.chart.update({
+          where: { id: record.id },
+          data: { aiAnalysisMarkdown: reading.markdown, aiProvider: providerName, aiPromptVersion: PROMPT_VERSION },
+        });
+      }
 
-      await prisma.chart.update({
-        where: { id: record.id },
-        data: { aiAnalysisMarkdown: fullText, aiProvider: providerName, aiPromptVersion: PROMPT_VERSION },
-      });
-
-      res.write(`event: done\ndata: ${JSON.stringify({ text: fullText })}\n\n`);
+      res.write(`event: done\ndata: ${JSON.stringify({ text: reading.markdown })}\n\n`);
       res.end();
     } catch (streamErr) {
       writeSseError(res, streamErr);
@@ -170,12 +207,8 @@ aiRouter.post("/natal/:personId/chat", aiRateLimiter, async (req, res, next) => 
     res.flushHeaders();
 
     try {
-      const fullText = await aiProvider.streamCompletion([{ role: "system", content: context }, ...messages], {
-        onToken: (token) => {
-          res.write(`event: token\ndata: ${JSON.stringify({ token })}\n\n`);
-        },
-      });
-      res.write(`event: done\ndata: ${JSON.stringify({ text: fullText })}\n\n`);
+      const reading = await streamFormattedReading(res, aiProvider, [{ role: "system", content: context }, ...messages], CHAT_SPEC);
+      res.write(`event: done\ndata: ${JSON.stringify({ text: reading.markdown })}\n\n`);
       res.end();
     } catch (streamErr) {
       writeSseError(res, streamErr);
@@ -215,12 +248,8 @@ aiRouter.post("/synastry/:id/chat", aiRateLimiter, async (req, res, next) => {
     res.flushHeaders();
 
     try {
-      const fullText = await aiProvider.streamCompletion([{ role: "system", content: context }, ...messages], {
-        onToken: (token) => {
-          res.write(`event: token\ndata: ${JSON.stringify({ token })}\n\n`);
-        },
-      });
-      res.write(`event: done\ndata: ${JSON.stringify({ text: fullText })}\n\n`);
+      const reading = await streamFormattedReading(res, aiProvider, [{ role: "system", content: context }, ...messages], CHAT_SPEC);
+      res.write(`event: done\ndata: ${JSON.stringify({ text: reading.markdown })}\n\n`);
       res.end();
     } catch (streamErr) {
       writeSseError(res, streamErr);

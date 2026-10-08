@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 import type { AiProviderName } from "@astro/shared";
 import { useAiStream } from "../../hooks/useAiStream.js";
 import { useAiChat } from "../../hooks/useAiChat.js";
 import { useModalDialog } from "../ui/useModalDialog.js";
+import { AiMarkdown } from "./AiMarkdown.js";
 
 interface AiChatDrawerProps {
   /** One-shot cached "full report" endpoint, e.g. `/ai/natal/:personId`. */
@@ -118,6 +118,7 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title, onArchetypeN
   }
 
   const isStreaming = report.streaming || chat.streaming;
+  const visibleMessages = chat.messages.length === 0 && report.text ? [{ role: "assistant" as const, content: report.text }] : chat.messages;
 
   return (
     <dialog ref={dialogRef} className="chat-drawer" style={{ width }} aria-label={title} aria-modal="true" onCancel={(event) => { event.preventDefault(); closeDrawer(); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeDrawer(); } }}>
@@ -175,17 +176,15 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title, onArchetypeN
         </label>
         <p className="sr-only" role="status">{isStreaming ? "AI response in progress" : "AI ready"}</p>
         <div ref={scrollRef} className="chat-messages" role="region" aria-label="Conversation" tabIndex={0}>
-          {chat.messages.length === 0 && report.streaming && <p className="text-sm text-muted">Generating your initial reading…</p>}
-          {chat.messages.map((m, idx) => (
+          {visibleMessages.length === 0 && report.streaming && <p className="text-sm text-muted">Generating your initial reading…</p>}
+          {visibleMessages.map((m, idx) => (
             <div key={idx} className={`mb-3 flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[90%] rounded-lg px-3 py-2 text-sm ${
                   m.role === "user" ? "bg-aurora/10 text-stardust" : "bg-elevated"
                 }`}
               >
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown>{m.content || (isStreaming ? "\u2026" : "")}</ReactMarkdown>
-                </div>
+                <AiMarkdown>{m.content || (isStreaming ? "\u2026" : "")}</AiMarkdown>
               </div>
             </div>
           ))}

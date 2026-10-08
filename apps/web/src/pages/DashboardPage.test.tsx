@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import DashboardPage from "./DashboardPage.js";
 import { peopleApi } from "../api/peopleApi.js";
 import { chartsApi } from "../api/chartsApi.js";
 import { getSessionReadings, removeSessionReadingsFor } from "../lib/sessionReadings.js";
 
-vi.mock("../api/peopleApi.js", () => ({ peopleApi: { list: vi.fn(), create: vi.fn(), remove: vi.fn() } }));
+vi.mock("../api/peopleApi.js", () => ({ peopleApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }));
 vi.mock("../api/geoApi.js", () => ({ geoApi: { search: vi.fn().mockResolvedValue([]) } }));
 vi.mock("../api/chartsApi.js", () => ({ chartsApi: { pregenerateReading: vi.fn() } }));
 
@@ -30,7 +30,7 @@ function renderDashboard() {
 describe("Workspace person dialogs", () => {
   it("keeps saved charts prominent and preserves a draft when the dialog is dismissed", async () => {
     renderDashboard();
-    expect(await screen.findByRole("link", { name: "View Alex Morgan's chart" })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "Open Alex Morgan's natal chart" })).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
     const trigger = screen.getByRole("button", { name: "Add a person" });
     trigger.focus();
@@ -65,6 +65,35 @@ describe("Workspace person dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add your first person" }));
     fireEvent.click(screen.getByRole("checkbox", { name: /Birth time unknown/ }));
     expect(screen.getByLabelText("Birth date & time (local)").getAttribute("type")).toBe("date");
+  });
+
+  it("keeps the card inert and edits a person from a dedicated button", async () => {
+    vi.mocked(peopleApi.update).mockResolvedValue({ ...person, name: "Alex M." });
+    renderDashboard();
+    const chartLink = await screen.findByRole("link", { name: "Open Alex Morgan's natal chart" });
+    expect(chartLink.getAttribute("href")).toBe("/chart/example");
+    expect(screen.getByRole("heading", { name: "Alex Morgan" }).closest("a, button")).toBeNull();
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Alex Morgan" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit Alex Morgan" });
+    const nameInput = within(dialog).getByRole("textbox", { name: "Name" }) as HTMLInputElement;
+    expect(nameInput.value).toBe("Alex Morgan");
+    expect((within(dialog).getByRole("textbox", { name: "Latitude" }) as HTMLInputElement).value).toBe("51.5");
+    fireEvent.change(nameInput, { target: { value: "Alex M." } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(peopleApi.update).toHaveBeenCalledWith("example", {
+      name: "Alex M.",
+      localDateTime: person.localDateTime,
+      timezone: person.timezone,
+      locationName: person.locationName,
+      latitude: 51.5,
+      longitude: -0.12,
+      timeUnknown: false,
+    });
+    expect(screen.getByRole("status").textContent).toBe("Person updated.");
   });
 });
 

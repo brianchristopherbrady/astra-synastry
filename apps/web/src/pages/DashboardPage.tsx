@@ -1,12 +1,12 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowUpRight, Plus, Trash2, Users, Orbit, MapPin } from "lucide-react";
-import type { Ayanamsa, PlaceSuggestion, ReadingStyle, RelationshipType, ZodiacMode } from "@astro/shared";
+import { Compass, Pencil, Plus, Save, Trash2, Users, Orbit, MapPin } from "lucide-react";
+import type { Ayanamsa, ReadingStyle, RelationshipType, ZodiacMode } from "@astro/shared";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { synastryApi } from "../api/synastryApi.js";
 import { chartsApi } from "../api/chartsApi.js";
 import { addSessionReading, removeSessionReadingsFor } from "../lib/sessionReadings.js";
-import { PlaceSearchInput } from "../components/forms/PlaceSearchInput.js";
+import { draftFromPerson, draftToPayload, emptyPersonDraft, PersonForm, type PersonDraft } from "../components/forms/PersonForm.js";
 import { Modal } from "../components/ui/Modal.js";
 
 const READING_STYLES: { value: ReadingStyle; label: string }[] = [
@@ -36,15 +36,9 @@ export default function DashboardPage() {
   const [status, setStatus] = useState("");
   const [addingPerson, setAddingPerson] = useState(false);
   const [personToRemove, setPersonToRemove] = useState<PersonRecord | null>(null);
-
-  const [name, setName] = useState("");
-  const [localDateTime, setLocalDateTime] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const [locationName, setLocationName] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
-  const [timeUnknown, setTimeUnknown] = useState(false);
+  const [addDraft, setAddDraft] = useState<PersonDraft>(emptyPersonDraft);
+  const [personToEdit, setPersonToEdit] = useState<PersonRecord | null>(null);
+  const [editDraft, setEditDraft] = useState<PersonDraft>(emptyPersonDraft);
 
   const [personAId, setPersonAId] = useState("");
   const [personBId, setPersonBId] = useState("");
@@ -71,36 +65,41 @@ export default function DashboardPage() {
     void loadPeople();
   }, []);
 
-  async function onAddPerson(e: FormEvent): Promise<void> {
-    e.preventDefault();
-    if (saving) return;
+  async function onAddPerson(): Promise<void> {
     setSaving(true);
     setError(null);
     setStatus("");
     try {
-      // datetime-local can't hold a date-only value, so unknown-time births use a separate date
-      // field and default to noon (a standard "noon chart" convention for missing birth times).
-      const resolvedDateTime = timeUnknown ? `${birthDate}T12:00:00` : localDateTime;
-      await peopleApi.create({
-        name,
-        localDateTime: resolvedDateTime,
-        timezone,
-        locationName,
-        latitude: Number(latitude),
-        longitude: Number(longitude),
-        timeUnknown,
-      });
-      setName("");
-      setLocalDateTime("");
-      setBirthDate("");
-      setLocationName("");
-      setLatitude("");
-      setLongitude("");
+      await peopleApi.create(draftToPayload(addDraft));
+      setAddDraft((current) => ({ ...emptyPersonDraft(), timezone: current.timezone }));
       await loadPeople();
       setAddingPerson(false);
       setStatus("Person saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add person");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openEditor(person: PersonRecord): void {
+    setError(null);
+    setEditDraft(draftFromPerson(person));
+    setPersonToEdit(person);
+  }
+
+  async function onEditPerson(): Promise<void> {
+    if (!personToEdit) return;
+    setSaving(true);
+    setError(null);
+    setStatus("");
+    try {
+      await peopleApi.update(personToEdit.id, draftToPayload(editDraft));
+      await loadPeople();
+      setPersonToEdit(null);
+      setStatus("Person updated.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update person");
     } finally {
       setSaving(false);
     }
@@ -170,13 +169,6 @@ export default function DashboardPage() {
     }
   }
 
-  function onPlaceSelected(place: PlaceSuggestion): void {
-    setLocationName(place.locationName);
-    setLatitude(String(place.latitude));
-    setLongitude(String(place.longitude));
-    setTimezone(place.timezone);
-  }
-
   return (
     <div className="page-content">
 
@@ -189,62 +181,33 @@ export default function DashboardPage() {
           <Plus size={18} aria-hidden="true" /> Add a person
         </button>
       </div>
-      {error && !addingPerson && !personToRemove && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
+      {error && !addingPerson && !personToRemove && !personToEdit && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
       <p role="status" className="text-sm text-success">{status}</p>
 
       <Modal open={addingPerson} onClose={() => { if (!saving) setAddingPerson(false); }} title="Add a person">
-          {error && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
-          <form onSubmit={onAddPerson} aria-busy={saving} className="flex flex-col gap-3">
-            <label className="text-sm text-muted">Name
-              <input className="input mt-1 w-full" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </label>
-            <label className="text-sm text-muted">
-              Birth date &amp; time (local)
-              {timeUnknown ? (
-                <input
-                  className="input mt-1 w-full"
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  required
-                />
-              ) : (
-                <input
-                  className="input mt-1 w-full"
-                  type="datetime-local"
-                  value={localDateTime}
-                  onChange={(e) => setLocalDateTime(e.target.value)}
-                  required
-                />
-              )}
-            </label>
-            <label className="flex min-h-8 items-center gap-2 text-sm text-muted">
-              <input type="checkbox" checked={timeUnknown} onChange={(e) => setTimeUnknown(e.target.checked)} />
-              Birth time unknown (solar chart, no houses)
-            </label>
-            <PlaceSearchInput value={locationName} onChange={setLocationName} onSelect={onPlaceSelected} />
-            <label className="text-sm text-muted">
-              Timezone
-              <input
-                className="input mt-1 w-full"
-                placeholder="IANA timezone, e.g. America/New_York"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                required
-              />
-            </label>
-            <fieldset className="min-w-0 text-xs text-muted">
-              <legend>Exact coordinates</legend>
-              <div className="mt-1 grid grid-cols-2 gap-2">
-                <label>Latitude<input className="input mt-1 w-full" inputMode="decimal" value={latitude} onChange={(e) => setLatitude(e.target.value)} required /></label>
-                <label>Longitude<input className="input mt-1 w-full" inputMode="decimal" value={longitude} onChange={(e) => setLongitude(e.target.value)} required /></label>
-              </div>
-            </fieldset>
-            <button className="btn-primary" type="submit" disabled={saving}>
-              <Plus size={18} aria-hidden="true" />
-              {saving ? "Saving…" : "Save person"}
-            </button>
-          </form>
+        {error && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
+        <PersonForm
+          draft={addDraft}
+          onChange={setAddDraft}
+          onSubmit={() => void onAddPerson()}
+          saving={saving}
+          submitLabel="Save person"
+          submitIcon={<Plus size={18} aria-hidden="true" />}
+        />
+      </Modal>
+      <Modal open={personToEdit !== null} onClose={() => { if (!saving) setPersonToEdit(null); }} title={`Edit ${personToEdit?.name ?? "person"}`}>
+        <p className="mb-4 text-sm text-muted">
+          Changing birth details recalculates this person&apos;s charts and relationship reports. Their AI readings regenerate the next time you open them.
+        </p>
+        {error && <p role="alert" className="mb-4 text-sm text-danger">{error}</p>}
+        <PersonForm
+          draft={editDraft}
+          onChange={setEditDraft}
+          onSubmit={() => void onEditPerson()}
+          saving={saving}
+          submitLabel="Save changes"
+          submitIcon={<Save size={18} aria-hidden="true" />}
+        />
       </Modal>
       <Modal open={personToRemove !== null} onClose={() => { if (!removing) setPersonToRemove(null); }} title="Remove person?">
         <p className="mb-4 text-sm text-muted">Remove {personToRemove?.name} and their saved charts and relationship reports? This cannot be undone.</p>
@@ -275,18 +238,23 @@ export default function DashboardPage() {
             <ul className="people-list">
               {people.map((p) => (
                 <li key={p.id} className="person-row">
-                  <Link className="person-link" aria-label={`View ${p.name}'s chart`} to={`/chart/${p.id}`}>
-                    <span className="person-monogram" aria-hidden="true">{p.name.trim().slice(0, 1).toUpperCase()}</span>
-                    <span className="person-identity">
-                      <span className="person-name">{p.name}</span>
-                      <span className="person-meta">{p.localDateTime.split("T")[0]}{p.timeUnknown ? " · Time unknown" : ""}</span>
-                      {p.locationName && <span className="person-meta"><MapPin size={12} aria-hidden="true" />{p.locationName}</span>}
-                    </span>
-                    <ArrowUpRight size={18} className="person-arrow" aria-hidden="true" />
-                  </Link>
-                  <button className="icon-button remove-person" title={`Remove ${p.name}`} disabled={removing !== null} aria-label={`Remove ${p.name}`} onClick={() => { setError(null); setPersonToRemove(p); }}>
-                    <Trash2 size={16} aria-hidden="true" />
-                  </button>
+                  <span className="person-monogram" aria-hidden="true">{p.name.trim().slice(0, 1).toUpperCase()}</span>
+                  <div className="person-identity">
+                    <h3 className="person-name">{p.name}</h3>
+                    <span className="person-meta">{p.localDateTime.split("T")[0]}{p.timeUnknown ? " · Time unknown" : ""}</span>
+                    {p.locationName && <span className="person-meta"><MapPin size={12} aria-hidden="true" />{p.locationName}</span>}
+                  </div>
+                  <div className="person-actions">
+                    <Link className="btn-secondary" to={`/chart/${p.id}`} aria-label={`Open ${p.name}'s natal chart`}>
+                      <Compass size={16} aria-hidden="true" /> Natal chart
+                    </Link>
+                    <button className="icon-button" title={`Edit ${p.name}`} aria-label={`Edit ${p.name}`} disabled={saving} onClick={() => openEditor(p)}>
+                      <Pencil size={16} aria-hidden="true" />
+                    </button>
+                    <button className="icon-button remove-person" title={`Remove ${p.name}`} disabled={removing !== null} aria-label={`Remove ${p.name}`} onClick={() => { setError(null); setPersonToRemove(p); }}>
+                      <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

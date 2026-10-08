@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
+import type { Ayanamsa, HouseSystem, ZodiacMode } from "@astro/shared";
 import { prisma } from "../lib/prisma.js";
+import { computeSynastryData } from "../services/synastry.service.js";
 
 export const peopleRouter: Router = Router();
 
@@ -15,6 +17,9 @@ const personSchema = z.object({
 });
 
 const personUpdateSchema = personSchema.partial();
+
+const BIRTH_FIELDS = ["localDateTime", "timezone", "latitude", "longitude", "timeUnknown"] as const;
+const CLEARED_READING = { aiAnalysisMarkdown: null, aiProvider: null, aiPromptVersion: null };
 
 peopleRouter.get("/", async (_req, res, next) => {
   try {
@@ -57,7 +62,36 @@ peopleRouter.patch("/:id", async (req, res, next) => {
       res.status(404).json({ error: "Person not found" });
       return;
     }
-    const person = await prisma.person.update({ where: { id }, data: body });
+    const birthChanged = BIRTH_FIELDS.some((field) => body[field] !== undefined && body[field] !== existing[field]);
+    const nameChanged = body.name !== undefined && body.name !== existing.name;
+    const involving = { OR: [{ personAId: id }, { personBId: id }] };
+
+    const person = await prisma.$transaction(async (tx) => {
+      const updated = await tx.person.update({ where: { id }, data: body });
+      if (birthChanged) {
+        // Cached charts were computed from the old birth data; they are rebuilt on next view.
+        await tx.chart.deleteMany({ where: { personId: id } });
+        const reports = await tx.synastryReport.findMany({ where: involving, include: { personA: true, personB: true } });
+        for (const report of reports) {
+          const data = computeSynastryData(
+            report.personA,
+            report.personB,
+            report.houseSystem as HouseSystem,
+            report.zodiacMode as ZodiacMode,
+            report.ayanamsa as Ayanamsa,
+          );
+          await tx.synastryReport.update({
+            where: { id: report.id },
+            data: { dataJson: JSON.stringify(data), archetypeName: null, ...CLEARED_READING },
+          });
+        }
+      } else if (nameChanged) {
+        // Readings address people by name, so regenerate them rather than show the old one.
+        await tx.chart.updateMany({ where: { personId: id }, data: CLEARED_READING });
+        await tx.synastryReport.updateMany({ where: involving, data: CLEARED_READING });
+      }
+      return updated;
+    });
     res.json(person);
   } catch (err) {
     next(err);

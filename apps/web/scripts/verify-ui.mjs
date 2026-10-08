@@ -144,7 +144,7 @@ try {
   await page.getByRole("dialog").waitFor({ state: "detached" });
   await page.getByRole("button", { name: "Remove Sample Person", exact: true }).click();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  assert.equal(await page.getByRole("link", { name: "View Sample Person's chart" }).count(), 1);
+  assert.equal(await page.getByRole("link", { name: "Open Sample Person's natal chart" }).count(), 1);
   await page.getByRole("button", { name: "Remove Sample Person", exact: true }).click();
   await page.getByRole("button", { name: "Remove person", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "detached" });

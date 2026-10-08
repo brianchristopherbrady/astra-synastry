@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { computeNatalChart, computeSynastry, computeTransitReport } from "@astro/astro-engine";
-import type { Ayanamsa, BirthData, HouseSystem, SynastryData, ZodiacMode } from "@astro/shared";
+import { computeTransitReport } from "@astro/astro-engine";
+import type { Ayanamsa, HouseSystem, SynastryData, ZodiacMode } from "@astro/shared";
 import { prisma } from "../lib/prisma.js";
+import { computeSynastryData } from "../services/synastry.service.js";
 
 export const synastryRouter: Router = Router();
 
@@ -34,17 +35,6 @@ async function loadPerson(id: string) {
     throw error;
   }
   return person;
-}
-
-function toBirthData(person: {
-  localDateTime: string;
-  timezone: string;
-  latitude: number;
-  longitude: number;
-  locationName: string;
-  timeUnknown: boolean;
-}): BirthData {
-  return { ...person };
 }
 
 synastryRouter.post("/", async (req, res, next) => {
@@ -86,19 +76,13 @@ synastryRouter.post("/", async (req, res, next) => {
       return;
     }
 
-    const chartA = computeNatalChart(
-      toBirthData(personA),
+    const synastry = computeSynastryData(
+      personA,
+      personB,
       body.houseSystem as HouseSystem,
       body.zodiacMode as ZodiacMode,
       body.ayanamsa as Ayanamsa,
     );
-    const chartB = computeNatalChart(
-      toBirthData(personB),
-      body.houseSystem as HouseSystem,
-      body.zodiacMode as ZodiacMode,
-      body.ayanamsa as Ayanamsa,
-    );
-    const synastry = computeSynastry(chartA, chartB);
 
     const created = await prisma.synastryReport.create({
       data: {

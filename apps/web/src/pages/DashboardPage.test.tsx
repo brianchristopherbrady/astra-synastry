@@ -85,7 +85,7 @@ describe("Reading form", () => {
     expect(screen.queryByRole("radio", { name: "Romantic" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Generate natal reading" }));
     expect(await screen.findByText("Natal chart page")).toBeTruthy();
-    expect(chartsApi.pregenerateReading).toHaveBeenCalledWith("example");
+    expect(chartsApi.pregenerateReading).toHaveBeenCalledWith("example", { zodiacMode: "tropical", ayanamsa: "lahiri" });
     expect(getSessionReadings()[0]).toMatchObject({ path: "/chart/example", label: "Alex Morgan", personIds: ["example"] });
   });
 });

@@ -1,5 +1,5 @@
 import { POINT_LABELS } from "@astro/shared";
-import type { AspectHit, ChartData, ReadingStyle, RelationshipType, SynastryData } from "@astro/shared";
+import type { AspectHit, Ayanamsa, ChartData, ReadingStyle, RelationshipType, SynastryData } from "@astro/shared";
 
 export const PROMPT_VERSION = "v3";
 
@@ -34,6 +34,23 @@ const CHAT_FORMAT_RULES = [
   "For a simple answer use one section with an empty heading and 1-3 short paragraph blocks; add short headings only when the answer has distinct parts. Use a bullets block for lists of placements or aspects.",
   TEXT_RULES,
 ].join(" ");
+
+const AYANAMSA_LABELS: Record<Ayanamsa, string> = {
+  lahiri: "Lahiri",
+  raman: "Raman",
+  krishnamurti: "Krishnamurti",
+  fagan_bradley: "Fagan-Bradley",
+  yukteshwar: "Yukteshwar",
+};
+
+/** Sidereal charts list signs roughly 24 degrees earlier than tropical; without this the model may "correct" them. */
+function zodiacNote(chart: ChartData): string[] {
+  if (chart.zodiacMode !== "sidereal") return [];
+  const ayanamsa = AYANAMSA_LABELS[chart.ayanamsa ?? "lahiri"];
+  return [
+    `All positions below are in the sidereal zodiac (${ayanamsa} ayanamsa), not the tropical zodiac. Interpret every sign exactly as listed, say "sidereal" when naming a sign would otherwise be ambiguous, and never convert positions back to tropical.`,
+  ];
+}
 
 function describeChartPoints(chart: ChartData): string {
   return Object.values(chart.points)
@@ -97,6 +114,7 @@ export function buildSynastryPrompt(
     relationshipFraming(relationshipType),
     styleInstruction(readingStyle, customStyleText),
     `Base your analysis STRICTLY on the computed placements and aspects listed below. Do not invent any placement, aspect, or house position that is not explicitly listed. If data is missing (e.g. no houses because a birth time is unknown), say so rather than guessing.`,
+    ...zodiacNote(synastry.personAChart),
     "",
     `## ${personAName}'s placements`,
     describeChartPoints(synastry.personAChart),
@@ -128,6 +146,7 @@ export function buildNatalPrompt(chart: ChartData, personName: string): string {
   const lines: string[] = [
     `You are an expert, grounded astrologer writing a personal natal chart reading for ${personName}.`,
     `Base your analysis STRICTLY on the computed placements, aspects, and patterns listed below. Do not invent any placement, aspect, or house position that is not explicitly listed. If houses are missing (birth time unknown), say so rather than guessing.`,
+    ...zodiacNote(chart),
     "",
     `## ${personName}'s placements`,
     describeChartPoints(chart),
@@ -150,6 +169,7 @@ export function buildNatalChatContext(chart: ChartData, personName: string): str
     `You are an expert, grounded astrologer answering questions about ${personName}'s natal chart.`,
     `Base every answer STRICTLY on the computed data below. Do not invent any placement, aspect, or house position that is not explicitly listed. If houses are missing (birth time unknown), say so rather than guessing. Keep answers conversational and reasonably concise unless the user asks for more depth.`,
     CHAT_FORMAT_RULES,
+    ...zodiacNote(chart),
     "",
     `## ${personName}'s placements`,
     describeChartPoints(chart),
@@ -178,6 +198,7 @@ export function buildSynastryChatContext(
     styleInstruction(readingStyle, customStyleText),
     `Base every answer STRICTLY on the computed data below. Do not invent any placement, aspect, or house position that is not explicitly listed. Keep answers conversational and reasonably concise unless the user asks for more depth.`,
     CHAT_FORMAT_RULES,
+    ...zodiacNote(synastry.personAChart),
     "",
     `## ${personAName}'s placements`,
     describeChartPoints(synastry.personAChart),

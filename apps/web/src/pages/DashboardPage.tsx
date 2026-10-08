@@ -115,7 +115,7 @@ export default function DashboardPage() {
     if (!personBId) {
       const query = zodiacMode === "sidereal" ? `?${new URLSearchParams({ zodiac: "sidereal", ayanamsa })}` : "";
       const path = `/chart/${personA.id}${query}`;
-      void chartsApi.pregenerateReading(personA.id).catch(() => {});
+      void chartsApi.pregenerateReading(personA.id, { zodiacMode, ayanamsa }).catch(() => {});
       addSessionReading({ path, label: personA.name, detail: `Natal reading \u00b7 ${zodiacDetail}`, personIds: [personA.id] });
       navigate(path);
       return;

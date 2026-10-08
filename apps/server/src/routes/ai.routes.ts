@@ -35,7 +35,11 @@ const chatBodySchema = z.object({
 });
 
 const houseSystemEnum = z.enum(["placidus", "wholeSign", "koch", "equal", "campanus", "regiomontanus"]);
-const querySchema = z.object({ houseSystem: houseSystemEnum.default("placidus") });
+const querySchema = z.object({
+  houseSystem: houseSystemEnum.default("placidus"),
+  zodiacMode: z.enum(["tropical", "sidereal"]).default("tropical"),
+  ayanamsa: z.enum(["lahiri", "raman", "krishnamurti", "fagan_bradley", "yukteshwar"]).default("lahiri"),
+});
 
 /** Once SSE headers are sent, we can no longer send a normal HTTP error response — emit an SSE error event instead. */
 function writeSseError(res: import("express").Response, err: unknown): void {
@@ -142,14 +146,14 @@ aiRouter.post("/synastry/:id", aiRateLimiter, async (req, res, next) => {
 aiRouter.post("/natal/:personId", aiRateLimiter, async (req, res, next) => {
   try {
     const { provider, force } = bodySchema.parse(req.body ?? {});
-    const { houseSystem } = querySchema.parse(req.query);
+    const { houseSystem, zodiacMode, ayanamsa } = querySchema.parse(req.query);
     const person = await prisma.person.findUnique({ where: { id: String(req.params.personId) } });
     if (!person) {
       res.status(404).json({ error: "Person not found" });
       return;
     }
 
-    const record = await getOrComputeChart(person, houseSystem as HouseSystem);
+    const record = await getOrComputeChart(person, houseSystem as HouseSystem, zodiacMode, ayanamsa);
     const providerName: AiProviderName = provider ?? "anthropic";
 
     res.setHeader("Content-Type", "text/event-stream");
@@ -189,14 +193,14 @@ aiRouter.post("/natal/:personId", aiRateLimiter, async (req, res, next) => {
 aiRouter.post("/natal/:personId/chat", aiRateLimiter, async (req, res, next) => {
   try {
     const { provider, messages } = chatBodySchema.parse(req.body ?? {});
-    const { houseSystem } = querySchema.parse(req.query);
+    const { houseSystem, zodiacMode, ayanamsa } = querySchema.parse(req.query);
     const person = await prisma.person.findUnique({ where: { id: String(req.params.personId) } });
     if (!person) {
       res.status(404).json({ error: "Person not found" });
       return;
     }
 
-    const record = await getOrComputeChart(person, houseSystem as HouseSystem);
+    const record = await getOrComputeChart(person, houseSystem as HouseSystem, zodiacMode, ayanamsa);
     const providerName: AiProviderName = provider ?? "anthropic";
     const context = buildNatalChatContext(record.chart, person.name);
     const aiProvider = resolveProvider(providerName);

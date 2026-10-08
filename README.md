@@ -57,6 +57,8 @@ pnpm dev:web      # http://localhost:5173 (proxies /api to the server)
   strips any markdown/links/HTML from text, enforces canonical section order and size limits, and
   renders the markdown itself. Truncated output is shown but never cached. Changing the reading
   format requires bumping `PROMPT_VERSION` so cached readings regenerate.
+- AI readings follow the chart's zodiac. Sidereal prompts name the ayanamsa so the model doesn't
+  reinterpret positions as tropical, and each natal zodiac/ayanamsa combination caches its own reading.
 - Geocoding/timezone resolution uses free, keyless services (OpenStreetMap Nominatim + the local `geo-tz`
   database), so no additional API keys are needed for birth-place lookup.
 

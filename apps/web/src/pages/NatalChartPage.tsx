@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ALL_POINTS, POINT_LABELS } from "@astro/shared";
 import type { Ayanamsa, HellenisticProfile, PointName, ZodiacMode } from "@astro/shared";
-import { chartsApi, type ChartRecord } from "../api/chartsApi.js";
+import { aiZodiacQuery, chartsApi, type ChartRecord } from "../api/chartsApi.js";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { ChartWheel } from "../components/chart/ChartWheel.js";
 import { AspectGrid } from "../components/chart/AspectGrid.js";
@@ -86,6 +86,8 @@ export default function NatalChartPage() {
 
   const { elementBalance, modalityBalance } = computeChartBalance(chart);
   const personName = person?.name ?? "This person";
+  // Keying the drawer on this resets its conversation when the zodiac changes.
+  const aiQuery = aiZodiacQuery({ zodiacMode, ayanamsa });
 
   return (
     <div className="page-content">
@@ -265,7 +267,12 @@ export default function NatalChartPage() {
       />
       <PointInsightModal point={pointTarget} onClose={() => setPointTarget(null)} charts={[{ label: personName, chart }]} />
       <HouseInsightModal house={houseTarget} onClose={() => setHouseTarget(null)} charts={[{ label: personName, chart }]} />
-      <AiChatDrawer reportEndpoint={`/ai/natal/${personId}`} chatEndpoint={`/ai/natal/${personId}/chat`} title={`AI Chat — ${personName}`} />
+      <AiChatDrawer
+        key={aiQuery || "tropical"}
+        reportEndpoint={`/ai/natal/${personId}${aiQuery}`}
+        chatEndpoint={`/ai/natal/${personId}/chat${aiQuery}`}
+        title={`AI Chat — ${personName}${zodiacMode === "sidereal" ? " (sidereal)" : ""}`}
+      />
     </div>
   );
 }

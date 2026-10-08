@@ -22,6 +22,11 @@ function toQuery(opts: ChartQueryOptions, date?: Date): string {
   return params.toString();
 }
 
+/** Query for natal AI endpoints; empty for tropical so existing cached tropical readings keep their URL. */
+export function aiZodiacQuery(opts: Pick<ChartQueryOptions, "zodiacMode" | "ayanamsa">): string {
+  return opts.zodiacMode === "sidereal" ? `?${new URLSearchParams({ zodiacMode: "sidereal", ayanamsa: opts.ayanamsa ?? "lahiri" })}` : "";
+}
+
 export const chartsApi = {
   get: (personId: string, opts: ChartQueryOptions = {}) => api.get<ChartRecord>(`/charts/${personId}?${toQuery(opts)}`),
   transits: (personId: string, date?: Date, opts: ChartQueryOptions = {}) =>
@@ -31,6 +36,7 @@ export const chartsApi = {
   hellenistic: (personId: string, date?: Date, opts: ChartQueryOptions = {}) =>
     api.get<HellenisticProfile>(`/charts/${personId}/hellenistic?${toQuery(opts, date)}`),
   /** Fires the natal AI reading in the background so it is cached before the chat drawer opens. */
-  pregenerateReading: (personId: string): Promise<void> => api.drain(`/ai/natal/${personId}`),
+  pregenerateReading: (personId: string, opts: Pick<ChartQueryOptions, "zodiacMode" | "ayanamsa"> = {}): Promise<void> =>
+    api.drain(`/ai/natal/${personId}${aiZodiacQuery(opts)}`),
 };
 

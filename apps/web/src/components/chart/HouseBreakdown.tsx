@@ -5,6 +5,7 @@ import { pointsByHouse } from "../../lib/houseUtils.js";
 
 interface HouseBreakdownProps {
   chart: ChartData;
+  headingLevel?: "h3" | "h4";
 }
 
 function signGlyph(sign: string): string {
@@ -12,7 +13,7 @@ function signGlyph(sign: string): string {
 }
 
 /** Shows what's actually in each of *this* chart's houses, not just the abstract meaning. */
-export function HouseBreakdown({ chart }: HouseBreakdownProps) {
+export function HouseBreakdown({ chart, headingLevel: Heading = "h3" }: HouseBreakdownProps) {
   if (!chart.houses) {
     return (
       <p className="text-sm text-slate-400">
@@ -31,7 +32,7 @@ export function HouseBreakdown({ chart }: HouseBreakdownProps) {
         return (
           <div key={cusp.house} className="house-entry">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-aurora">{meaning?.title ?? `House ${cusp.house}`}</h3>
+              <Heading className="text-sm font-semibold text-aurora">{meaning?.title ?? `House ${cusp.house}`}</Heading>
               <span className="text-xs capitalize text-muted">
                 <span className="astro-symbol">{`${signGlyph(cusp.sign)}\ufe0e`}</span> {cusp.sign} {`${cusp.signDegree.toFixed(1)}\u00b0`}
               </span>

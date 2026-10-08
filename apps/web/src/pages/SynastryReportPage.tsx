@@ -148,21 +148,24 @@ export default function SynastryReportPage() {
       </div>
 
       <div className="report-details mt-8">
-        <div className="report-pair">
-          <section className="report-section">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold">{report.personAName}&apos;s houses, explained</h2>
-              <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
-                What are houses?
-              </Link>
+        <section className="report-section" aria-labelledby="houses-explained-title">
+          <div className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h2 id="houses-explained-title" className="text-lg font-semibold">Houses explained</h2>
+            <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
+              What are houses?
+            </Link>
+          </div>
+          <div className="report-pair">
+            <div className="min-w-0">
+              <h3 className="mb-3 text-base font-semibold">{report.personAName}</h3>
+              <HouseBreakdown chart={report.personAChart} headingLevel="h4" />
             </div>
-            <HouseBreakdown chart={report.personAChart} />
-          </section>
-          <section className="report-section">
-            <h2 className="mb-2 text-lg font-semibold">{report.personBName}&apos;s houses, explained</h2>
-            <HouseBreakdown chart={report.personBChart} />
-          </section>
-        </div>
+            <div className="min-w-0">
+              <h3 className="mb-3 text-base font-semibold">{report.personBName}</h3>
+              <HouseBreakdown chart={report.personBChart} headingLevel="h4" />
+            </div>
+          </div>
+        </section>
 
         <section className="report-section">
           <h2 className="mb-2 text-lg font-semibold">Cross-aspect grid</h2>

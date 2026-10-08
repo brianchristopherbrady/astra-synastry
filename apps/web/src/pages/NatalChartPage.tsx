@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ALL_POINTS, POINT_LABELS } from "@astro/shared";
 import type { Ayanamsa, HellenisticProfile, PointName, ZodiacMode } from "@astro/shared";
 import { chartsApi, type ChartRecord } from "../api/chartsApi.js";
@@ -17,7 +17,6 @@ import { ModalityBarChart } from "../components/dashboard/ModalityBarChart.js";
 import { HouseOccupancyChart } from "../components/dashboard/HouseOccupancyChart.js";
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
 import { computeChartBalance } from "../lib/chartBalance.js";
-import { setLastChart } from "../lib/lastChart.js";
 import { ChartNavigation } from "../components/layout/ChartNavigation.js";
 
 const AYANAMSA_OPTIONS: { value: Ayanamsa; label: string }[] = [
@@ -30,6 +29,8 @@ const AYANAMSA_OPTIONS: { value: Ayanamsa; label: string }[] = [
 
 export default function NatalChartPage() {
   const { personId } = useParams<{ personId: string }>();
+  const [searchParams] = useSearchParams();
+  const initialAyanamsa = AYANAMSA_OPTIONS.find((option) => option.value === searchParams.get("ayanamsa"))?.value ?? "lahiri";
   const [chart, setChart] = useState<ChartRecord | null>(null);
   const [person, setPerson] = useState<PersonRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +38,8 @@ export default function NatalChartPage() {
   const [insightTarget, setInsightTarget] = useState<BalanceInsightTarget | null>(null);
   const [pointTarget, setPointTarget] = useState<PointName | null>(null);
   const [houseTarget, setHouseTarget] = useState<number | null>(null);
-  const [zodiacMode, setZodiacMode] = useState<ZodiacMode>("tropical");
-  const [ayanamsa, setAyanamsa] = useState<Ayanamsa>("lahiri");
+  const [zodiacMode, setZodiacMode] = useState<ZodiacMode>(searchParams.get("zodiac") === "sidereal" ? "sidereal" : "tropical");
+  const [ayanamsa, setAyanamsa] = useState<Ayanamsa>(initialAyanamsa);
   const [hellenistic, setHellenistic] = useState<HellenisticProfile | null>(null);
 
   useEffect(() => {
@@ -47,7 +48,6 @@ export default function NatalChartPage() {
       .then(([chartResult, personResult]) => {
         setChart(chartResult);
         setPerson(personResult);
-        setLastChart(`/chart/${personId}`);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load chart"));
   }, [personId, zodiacMode, ayanamsa]);

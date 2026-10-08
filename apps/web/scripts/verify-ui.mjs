@@ -151,7 +151,7 @@ try {
   evidence.interactions.push("Geocoder keyboard selection, save failure/draft/retry/success, remove cancel/confirmation");
 
   await page.getByRole("combobox", { name: "Person A", exact: true }).selectOption("alex");
-  await page.getByRole("combobox", { name: "Person B", exact: true }).selectOption("jordan");
+  await page.getByRole("combobox", { name: "Person B (optional)", exact: true }).selectOption("jordan");
   await page.getByRole("button", { name: "Sidereal", exact: true }).click();
   await page.getByLabel("Ayanamsa").selectOption("fagan_bradley");
   await page.getByLabel("Friendship", { exact: true }).check();

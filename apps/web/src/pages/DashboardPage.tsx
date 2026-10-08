@@ -4,6 +4,8 @@ import { ArrowUpRight, Plus, Trash2, Users, Orbit, MapPin } from "lucide-react";
 import type { Ayanamsa, PlaceSuggestion, ReadingStyle, RelationshipType, ZodiacMode } from "@astro/shared";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { synastryApi } from "../api/synastryApi.js";
+import { chartsApi } from "../api/chartsApi.js";
+import { addSessionReading, removeSessionReadingsFor } from "../lib/sessionReadings.js";
 import { PlaceSearchInput } from "../components/forms/PlaceSearchInput.js";
 import { Modal } from "../components/ui/Modal.js";
 
@@ -104,8 +106,21 @@ export default function DashboardPage() {
     }
   }
 
-  async function onGenerateSynastry(): Promise<void> {
-    if (!personAId || !personBId || personAId === personBId) return;
+  async function onGenerateReading(): Promise<void> {
+    const personA = people.find((p) => p.id === personAId);
+    if (!personA || personAId === personBId) return;
+    const ayanamsaLabel = AYANAMSA_OPTIONS.find((opt) => opt.value === ayanamsa)?.label ?? ayanamsa;
+    const zodiacDetail = zodiacMode === "sidereal" ? `sidereal (${ayanamsaLabel})` : "tropical";
+
+    if (!personBId) {
+      const query = zodiacMode === "sidereal" ? `?${new URLSearchParams({ zodiac: "sidereal", ayanamsa })}` : "";
+      const path = `/chart/${personA.id}${query}`;
+      void chartsApi.pregenerateReading(personA.id).catch(() => {});
+      addSessionReading({ path, label: personA.name, detail: `Natal reading \u00b7 ${zodiacDetail}`, personIds: [personA.id] });
+      navigate(path);
+      return;
+    }
+
     setGenerating(true);
     setError(null);
     try {
@@ -121,6 +136,12 @@ export default function DashboardPage() {
       // Fire-and-forget: kick off the AI reading (including the archetype name) right away so it's
       // likely already ready by the time the user opens the chat drawer on the report page.
       void synastryApi.pregenerateReading(report.id).catch(() => {});
+      addSessionReading({
+        path: `/synastry/${report.id}`,
+        label: `${report.personAName} & ${report.personBName}`,
+        detail: `Synastry \u00b7 ${relationshipType} \u00b7 ${zodiacDetail}`,
+        personIds: [personAId, personBId],
+      });
       navigate(`/synastry/${report.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate synastry report");
@@ -136,6 +157,7 @@ export default function DashboardPage() {
     setStatus("");
     try {
       await peopleApi.remove(id);
+      removeSessionReadingsFor(id);
       await loadPeople();
       if (personAId === id) setPersonAId("");
       if (personBId === id) setPersonBId("");
@@ -272,9 +294,9 @@ export default function DashboardPage() {
         </section>
 
         <section className="workspace-comparison" aria-labelledby="comparison-title">
-          <div className="section-heading"><h2 id="comparison-title"><Orbit size={18} aria-hidden="true" /> Relationship reading</h2><span className="eyebrow">Synastry</span></div>
-          {people.length < 2 ? (
-            <p className="empty-state text-sm text-muted">Two saved people are needed for a relationship reading.</p>
+          <div className="section-heading"><h2 id="comparison-title"><Orbit size={18} aria-hidden="true" /> Run a reading</h2><span className="eyebrow">Natal or synastry</span></div>
+          {people.length === 0 ? (
+            <p className="empty-state text-sm text-muted">Add a person to run a reading.</p>
           ) : (
             <div className="comparison-form">
               <div className="report-pair comparison-pair">
@@ -288,9 +310,9 @@ export default function DashboardPage() {
                 ))}
               </select>
               </label>
-              <label className="field-label" htmlFor="person-b">Person B
+              <label className="field-label" htmlFor="person-b">Person B (optional)
               <select id="person-b" className="input" value={personBId} onChange={(e) => setPersonBId(e.target.value)}>
-                <option value="">Select person</option>
+                <option value="">None (natal reading)</option>
                 {people.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -336,6 +358,8 @@ export default function DashboardPage() {
                 )}
               </fieldset>
 
+              {personBId && (
+              <>
               <fieldset className="flex flex-col gap-1">
                 <legend className="text-xs text-slate-400">Reading type</legend>
                 <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
@@ -383,10 +407,13 @@ export default function DashboardPage() {
                   onChange={(e) => setCustomStyleText(e.target.value)}
                 />
               )}
+              </>
+              )}
 
-              <button className="btn-primary" disabled={generating || !personAId || !personBId || personAId === personBId} onClick={() => void onGenerateSynastry()}>
+              {personAId && personAId === personBId && <p className="text-sm text-danger">Choose two different people, or set Person B to None.</p>}
+              <button className="btn-primary" disabled={generating || !personAId || personAId === personBId} onClick={() => void onGenerateReading()}>
                 <Orbit size={18} aria-hidden="true" />
-                {generating ? "Generating…" : "Generate synastry report"}
+                {generating ? "Generating…" : personBId ? "Generate synastry report" : "Generate natal reading"}
               </button>
             </div>
           )}

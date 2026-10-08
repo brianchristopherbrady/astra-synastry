@@ -216,9 +216,25 @@
   .nav-link { display: inline-flex; align-items: center; gap: var(--space-2); min-block-size: var(--control-size); padding: var(--space-2) var(--space-3); border-block-end: 2px solid transparent; font-size: var(--text-small); color: rgb(var(--color-muted)); }
   .nav-link:hover { background: rgb(var(--color-elevated)); }
   .nav-link[aria-current="page"] { border-color: rgb(var(--color-accent)); color: rgb(var(--color-accent)); }
+  /* The readings list anchors to the whole nav, which always sits inside the viewport. */
+  .app-nav { position: relative; }
+  .nav-menu { display: flex; }
+  .nav-menu > .nav-link { flex: 1 1 auto; }
+  .nav-menu-text { display: inline-flex; align-items: center; gap: var(--space-1); }
+  .nav-menu-chevron { transition: transform var(--duration-fast) var(--ease-standard); }
+  .nav-link[aria-expanded="true"] { background: rgb(var(--color-elevated)); color: rgb(var(--color-text)); }
+  .nav-link[aria-expanded="true"] .nav-menu-chevron { transform: rotate(180deg); }
+  .nav-menu-list { position: absolute; inset-block-start: calc(100% + var(--space-1)); inset-inline-end: 0; z-index: var(--layer-popover); inline-size: min(20rem, calc(100vw - 2rem)); max-block-size: min(24rem, 70vh); overflow: auto; overscroll-behavior: contain; padding: var(--space-1); border: 1px solid rgb(var(--color-border)); border-radius: var(--radius-panel); background: rgb(var(--color-elevated)); box-shadow: var(--shadow-overlay); }
+  .nav-menu-item { display: flex; flex-direction: column; justify-content: center; gap: 0.125rem; min-block-size: var(--control-size); padding: var(--space-2) var(--space-3); border-inline-start: 2px solid transparent; border-radius: var(--radius-control); }
+  .nav-menu-item:hover { background: rgb(var(--color-surface)); }
+  .nav-menu-item[aria-current="page"] { border-inline-start-color: rgb(var(--color-accent)); background: rgb(var(--color-surface)); }
+  .nav-menu-label { font-size: var(--text-small); font-weight: 500; color: rgb(var(--color-text)); }
+  .nav-menu-item[aria-current="page"] .nav-menu-label { color: rgb(var(--color-accent)); }
+  .nav-menu-detail { font-size: 0.75rem; color: rgb(var(--color-muted)); text-transform: capitalize; }
   /* Phones: primary destinations share one full-width row instead of orphaning the last link. */
   @media (max-width: 29.99rem) {
     .app-nav { flex-basis: 100%; gap: 0; }
+    .app-nav > .nav-menu { flex: 1 1 0; }
     .app-nav .nav-link { flex: 1 1 0; flex-direction: column; justify-content: center; gap: var(--space-1); padding-inline: var(--space-1); white-space: nowrap; }
   }
   .skip-link { position: fixed; inset-block-start: var(--space-2); inset-inline-start: var(--space-2); z-index: var(--layer-skip); padding: var(--space-3); background: rgb(var(--color-action)); color: rgb(var(--color-on-action)); transform: translateY(-200%); }

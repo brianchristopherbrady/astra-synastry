@@ -27,4 +27,18 @@ export const api = {
   patch: <T>(path: string, body?: unknown): Promise<T> =>
     request<T>(path, { method: "PATCH", body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string): Promise<T> => request<T>(path, { method: "DELETE" }),
+  /** POSTs to an SSE endpoint and discards the stream, so the server finishes and caches the result. */
+  drain: async (path: string): Promise<void> => {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (!response.body) return;
+    const reader = response.body.getReader();
+    for (;;) {
+      const { done } = await reader.read();
+      if (done) break;
+    }
+  },
 };

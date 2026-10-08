@@ -1,13 +1,9 @@
-import { Link, NavLink, useLocation } from "react-router-dom";
-import { BookOpen, Orbit, Users, Compass } from "lucide-react";
-import { getLastChart } from "../../lib/lastChart.js";
+import { Link, NavLink } from "react-router-dom";
+import { BookOpen, Orbit, Users } from "lucide-react";
+import { ReadingsMenu } from "./ReadingsMenu.js";
 
 /** Persistent header shown on every page — always provides a way back home. */
 export function AppHeader() {
-  const location = useLocation();
-  const lastChart = getLastChart();
-  const showBackToChart = lastChart && lastChart.path !== location.pathname;
-
   return (
     <header className="app-header">
       <Link to="/" className="app-brand">
@@ -18,11 +14,7 @@ export function AppHeader() {
         <NavLink to="/" end className="nav-link">
           <Users size={17} aria-hidden="true" /> Dashboard
         </NavLink>
-        {showBackToChart && (
-          <Link to={lastChart.path} className="nav-link">
-            <Compass size={17} aria-hidden="true" /> View chart
-          </Link>
-        )}
+        <ReadingsMenu />
         <NavLink to="/wiki" className="nav-link">
           <BookOpen size={17} aria-hidden="true" /> Wiki
         </NavLink>

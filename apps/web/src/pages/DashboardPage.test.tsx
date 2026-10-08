@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import DashboardPage from "./DashboardPage.js";
 import { peopleApi } from "../api/peopleApi.js";
+import { chartsApi } from "../api/chartsApi.js";
+import { getSessionReadings, removeSessionReadingsFor } from "../lib/sessionReadings.js";
 
 vi.mock("../api/peopleApi.js", () => ({ peopleApi: { list: vi.fn(), create: vi.fn(), remove: vi.fn() } }));
 vi.mock("../api/geoApi.js", () => ({ geoApi: { search: vi.fn().mockResolvedValue([]) } }));
+vi.mock("../api/chartsApi.js", () => ({ chartsApi: { pregenerateReading: vi.fn() } }));
 
 const person = { id: "example", name: "Alex Morgan", localDateTime: "1990-06-15T12:00:00", timezone: "Europe/London", locationName: "London", latitude: 51.5, longitude: -0.12, timeUnknown: false, createdAt: "2026-09-20" };
 
@@ -62,5 +65,27 @@ describe("Workspace person dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add your first person" }));
     fireEvent.click(screen.getByRole("checkbox", { name: /Birth time unknown/ }));
     expect(screen.getByLabelText("Birth date & time (local)").getAttribute("type")).toBe("date");
+  });
+});
+
+describe("Reading form", () => {
+  afterEach(() => removeSessionReadingsFor("example"));
+
+  it("runs a single-person natal reading when Person B is left empty", async () => {
+    vi.mocked(chartsApi.pregenerateReading).mockResolvedValue(undefined);
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/chart/:personId" element={<p>Natal chart page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.change(await screen.findByRole("combobox", { name: "Person A" }), { target: { value: "example" } });
+    expect(screen.queryByRole("radio", { name: "Romantic" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Generate natal reading" }));
+    expect(await screen.findByText("Natal chart page")).toBeTruthy();
+    expect(chartsApi.pregenerateReading).toHaveBeenCalledWith("example");
+    expect(getSessionReadings()[0]).toMatchObject({ path: "/chart/example", label: "Alex Morgan", personIds: ["example"] });
   });
 });

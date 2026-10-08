@@ -1,5 +1,6 @@
 import { computeNatalChart } from "@astro/astro-engine";
 import type { Ayanamsa, ChartData, HouseSystem, ZodiacMode } from "@astro/shared";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 
 interface PersonLike {
@@ -27,9 +28,8 @@ export async function getOrComputeChart(
   zodiacMode: ZodiacMode = "tropical",
   ayanamsa: Ayanamsa = "lahiri",
 ): Promise<ChartRecord> {
-  const cached = await prisma.chart.findUnique({
-    where: { personId_houseSystem_zodiacMode_ayanamsa: { personId: person.id, houseSystem, zodiacMode, ayanamsa } },
-  });
+  const where = { personId_houseSystem_zodiacMode_ayanamsa: { personId: person.id, houseSystem, zodiacMode, ayanamsa } };
+  const cached = await prisma.chart.findUnique({ where });
   if (cached) {
     return {
       id: cached.id,
@@ -54,10 +54,22 @@ export async function getOrComputeChart(
     ayanamsa,
   );
 
-  const created = await prisma.chart.create({
-    data: { personId: person.id, houseSystem, zodiacMode, ayanamsa, dataJson: JSON.stringify(chart) },
-  });
-
-  return { id: created.id, chart, aiProvider: null, aiAnalysisMarkdown: null, aiPromptVersion: null };
+  try {
+    const created = await prisma.chart.create({
+      data: { personId: person.id, houseSystem, zodiacMode, ayanamsa, dataJson: JSON.stringify(chart) },
+    });
+    return { id: created.id, chart, aiProvider: null, aiAnalysisMarkdown: null, aiPromptVersion: null };
+  } catch (err) {
+    // Parallel first requests (e.g. chart + Hellenistic profile) race to insert the same cache row.
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) throw err;
+    const existing = await prisma.chart.findUniqueOrThrow({ where });
+    return {
+      id: existing.id,
+      chart: JSON.parse(existing.dataJson) as ChartData,
+      aiProvider: existing.aiProvider,
+      aiAnalysisMarkdown: existing.aiAnalysisMarkdown,
+      aiPromptVersion: existing.aiPromptVersion,
+    };
+  }
 }
 

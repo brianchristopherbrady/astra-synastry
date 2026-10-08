@@ -16,10 +16,7 @@ interface AiChatDrawerProps {
   onArchetypeName?: (name: string) => void;
 }
 
-const PROVIDERS: { value: AiProviderName; label: string }[] = [
-  { value: "openai", label: "OpenAI" },
-  { value: "anthropic", label: "Anthropic" },
-];
+const PROVIDER: AiProviderName = "anthropic";
 
 const MIN_WIDTH = 320;
 const MAX_WIDTH = 900;
@@ -30,7 +27,6 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title, onArchetypeN
   const [open, setOpen] = useState(false);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [input, setInput] = useState("");
-  const [provider, setProvider] = useState<AiProviderName>("anthropic");
   const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const seededRef = useRef(false);
@@ -59,7 +55,7 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title, onArchetypeN
   useEffect(() => {
     if (!open || seededRef.current) return;
     seededRef.current = true;
-    void report.start(reportEndpoint, provider);
+    void report.start(reportEndpoint, PROVIDER);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -101,7 +97,7 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title, onArchetypeN
     const text = input.trim();
     if (!text || report.streaming || chat.streaming) return;
     setInput("");
-    void chat.send(chatEndpoint, text, provider);
+    void chat.send(chatEndpoint, text, PROVIDER);
   }
 
   if (!open) {
@@ -140,34 +136,20 @@ export function AiChatDrawer({ reportEndpoint, chatEndpoint, title, onArchetypeN
         aria-label="Resize AI chat panel"
       />
       <div className="flex min-w-0 flex-1 flex-col bg-surface">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/50 p-4">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3 border-b border-line/50 p-4">
+          <div className="min-w-0 flex-1">
             <h2 className="text-sm font-semibold text-stardust">{title}</h2>
             {report.archetypeName && <p className="text-xs text-aurora">{report.archetypeName}</p>}
           </div>
-          <div className="flex items-center gap-2">
-            {PROVIDERS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setProvider(p.value)}
-                aria-pressed={provider === p.value}
-                className={`min-h-11 rounded border px-2 text-xs ${
-                  provider === p.value ? "border-aurora text-aurora underline underline-offset-4" : "border-line text-muted hover:bg-elevated"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-            <button
-              ref={closeRef}
-              onClick={closeDrawer}
-              aria-label="Close"
-              title="Close"
-              className="icon-button"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
-          </div>
+          <button
+            ref={closeRef}
+            onClick={closeDrawer}
+            aria-label="Close"
+            title="Close"
+            className="icon-button -me-2 -mt-2"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
         </div>
 
         <label className="chat-width text-xs text-muted">

@@ -16,7 +16,6 @@ import { ModalityBarChart } from "../components/dashboard/ModalityBarChart.js";
 import { CompatibilityGauge } from "../components/dashboard/CompatibilityGauge.js";
 import { HouseOccupancyChart } from "../components/dashboard/HouseOccupancyChart.js";
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
-import { setLastChart } from "../lib/lastChart.js";
 import { ChartNavigation } from "../components/layout/ChartNavigation.js";
 
 export default function SynastryReportPage() {
@@ -36,7 +35,6 @@ export default function SynastryReportPage() {
       .then((result) => {
         setReport(result);
         setArchetypeName(result.archetypeName);
-        setLastChart(`/synastry/${id}`);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load report"));
   }, [id]);

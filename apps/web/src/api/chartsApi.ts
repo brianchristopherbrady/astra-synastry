@@ -30,5 +30,7 @@ export const chartsApi = {
     api.get<ProgressedChartReport>(`/charts/${personId}/progressions?${toQuery(opts, date)}`),
   hellenistic: (personId: string, date?: Date, opts: ChartQueryOptions = {}) =>
     api.get<HellenisticProfile>(`/charts/${personId}/hellenistic?${toQuery(opts, date)}`),
+  /** Fires the natal AI reading in the background so it is cached before the chat drawer opens. */
+  pregenerateReading: (personId: string): Promise<void> => api.drain(`/ai/natal/${personId}`),
 };
 

@@ -144,64 +144,66 @@ export default function SynastryReportPage() {
               <HouseOccupancyChart chart={report.personBChart} onSelect={setHouseTarget} />
             </section>
           </div>
+        </div>
+      </div>
 
-          <div className="report-pair">
-            <section className="report-section">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">{report.personAName}&apos;s houses, explained</h2>
-                <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
-                  What are houses?
-                </Link>
-              </div>
-              <HouseBreakdown chart={report.personAChart} />
-            </section>
-            <section className="report-section">
-              <h2 className="mb-2 text-lg font-semibold">{report.personBName}&apos;s houses, explained</h2>
-              <HouseBreakdown chart={report.personBChart} />
-            </section>
-          </div>
-
+      <div className="report-details mt-8">
+        <div className="report-pair">
           <section className="report-section">
-            <h2 className="mb-2 text-lg font-semibold">Cross-aspect grid</h2>
-            <AspectGrid pointsA={ALL_POINTS} pointsB={ALL_POINTS} aspects={report.crossAspects} />
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold">{report.personAName}&apos;s houses, explained</h2>
+              <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
+                What are houses?
+              </Link>
+            </div>
+            <HouseBreakdown chart={report.personAChart} />
           </section>
-
-          <div className="report-pair">
-            <section className="report-section">
-              <h2 className="mb-2 text-lg font-semibold">Composite chart</h2>
-              <p className="mb-3 text-xs text-slate-400">The relationship as its own entity, built from the midpoint of every placement.</p>
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-full max-w-[260px]">
-                  <ChartWheel innerChart={report.compositeChart} size={420} />
-                </div>
-                <KeyPlacementsSummary chart={report.compositeChart} personName="The relationship (composite)" />
-              </div>
-            </section>
-            <section className="report-section">
-              <h2 className="mb-2 text-lg font-semibold">Davison chart</h2>
-              <p className="mb-3 text-xs text-slate-400">A real chart for the midpoint moment in time and location between you two.</p>
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-full max-w-[260px]">
-                  <ChartWheel innerChart={report.davisonChart} size={420} />
-                </div>
-                <KeyPlacementsSummary chart={report.davisonChart} personName="The relationship (Davison)" />
-              </div>
-            </section>
-          </div>
-
           <section className="report-section">
-            <h2 className="mb-1 text-lg font-semibold">Current transits</h2>
-            <p className="mb-3 text-sm text-slate-400">
-              See what's happening for {report.personAName} &amp; {report.personBName} right now, on a dedicated page.
-            </p>
-            <Link
-              to={`/synastry/${report.id}/now`}
-              className="btn-secondary"
-            >
-              View the "Now" page →
-            </Link>
+            <h2 className="mb-2 text-lg font-semibold">{report.personBName}&apos;s houses, explained</h2>
+            <HouseBreakdown chart={report.personBChart} />
           </section>
         </div>
+
+        <section className="report-section">
+          <h2 className="mb-2 text-lg font-semibold">Cross-aspect grid</h2>
+          <AspectGrid pointsA={ALL_POINTS} pointsB={ALL_POINTS} aspects={report.crossAspects} />
+        </section>
+
+        <div className="report-pair">
+          <section className="report-section">
+            <h2 className="mb-2 text-lg font-semibold">Composite chart</h2>
+            <p className="mb-3 text-xs text-slate-400">The relationship as its own entity, built from the midpoint of every placement.</p>
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-full max-w-[260px]">
+                <ChartWheel innerChart={report.compositeChart} size={420} />
+              </div>
+              <KeyPlacementsSummary chart={report.compositeChart} personName="The relationship (composite)" />
+            </div>
+          </section>
+          <section className="report-section">
+            <h2 className="mb-2 text-lg font-semibold">Davison chart</h2>
+            <p className="mb-3 text-xs text-slate-400">A real chart for the midpoint moment in time and location between you two.</p>
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-full max-w-[260px]">
+                <ChartWheel innerChart={report.davisonChart} size={420} />
+              </div>
+              <KeyPlacementsSummary chart={report.davisonChart} personName="The relationship (Davison)" />
+            </div>
+          </section>
+        </div>
+
+        <section className="report-section">
+          <h2 className="mb-1 text-lg font-semibold">Current transits</h2>
+          <p className="mb-3 text-sm text-slate-400">
+            See what's happening for {report.personAName} &amp; {report.personBName} right now, on a dedicated page.
+          </p>
+          <Link
+            to={`/synastry/${report.id}/now`}
+            className="btn-secondary"
+          >
+            View the "Now" page →
+          </Link>
+        </section>
       </div>
 
       <BalanceInsightModal

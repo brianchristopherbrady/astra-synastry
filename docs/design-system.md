@@ -155,6 +155,9 @@ announced. Location search failure must not prevent direct location/coordinate e
   available width. Use for person pairs, chart comparisons, and form sections.
 - `.report-layout`: one column below 64rem; then a 22rem chart rail plus flexible
   detail column. This leaves adequate width for real chart labels and report text.
+  On the synastry report, only the summary metrics and house counts sit beside the rail;
+  house explanations, cross-aspects, composite/Davison and transits follow at full width
+  in a second `.report-details` block so long content is not confined under an empty rail.
 - `.report-chart`: wrapping flex row. The wheel (`svg` child or `.report-wheel` figure when a
   caption is needed; 22rem basis, 420px max) and `.point-legend` (16rem basis) sit side by
   side whenever both fit (roughly 40-64rem viewports) and stack in the 22rem rail or on phones.

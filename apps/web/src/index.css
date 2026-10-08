@@ -270,6 +270,12 @@
   }
   .ds-dialog::backdrop { background: rgb(0 0 0 / 0.7); }
   .dialog-heading { display: flex; align-items: start; justify-content: space-between; gap: var(--space-4); margin-block-end: var(--space-4); }
+  .text-link { min-block-size: 1.5rem; color: rgb(var(--color-action)); text-underline-offset: 0.2em; }
+  .text-link:hover { text-decoration: underline; }
+  .glossary-list { display: flex; flex-direction: column; gap: var(--space-3); }
+  .glossary-list > div { padding-block-start: var(--space-3); border-block-start: 1px solid rgb(var(--color-border) / 0.4); }
+  .glossary-list dt { font-size: var(--text-small); font-weight: var(--weight-strong); color: rgb(var(--color-action)); }
+  .glossary-list dd { margin: var(--space-1) 0 0; font-size: var(--text-small); color: rgb(var(--color-text) / 0.85); }
   .input {
     min-inline-size: 0;
     max-inline-size: 100%;

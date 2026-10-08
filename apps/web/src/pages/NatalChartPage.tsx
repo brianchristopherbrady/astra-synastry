@@ -18,6 +18,7 @@ import { HouseOccupancyChart } from "../components/dashboard/HouseOccupancyChart
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
 import { computeChartBalance } from "../lib/chartBalance.js";
 import { ChartNavigation } from "../components/layout/ChartNavigation.js";
+import { GlossaryHelp } from "../components/chart/GlossaryHelp.js";
 
 const AYANAMSA_OPTIONS: { value: Ayanamsa; label: string }[] = [
   { value: "lahiri", label: "Lahiri" },
@@ -168,9 +169,7 @@ export default function NatalChartPage() {
           <section className="report-section">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Your houses</h2>
-              <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
-                What are houses?
-              </Link>
+              <GlossaryHelp topic="houses" label="What are houses?" />
             </div>
             <HouseBreakdown chart={chart} />
           </section>
@@ -184,9 +183,7 @@ export default function NatalChartPage() {
             <section className="report-section">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">Detected aspect patterns</h2>
-                <Link to="/wiki#patterns" className="text-xs text-aurora hover:underline">
-                  What do these mean?
-                </Link>
+                <GlossaryHelp topic="patterns" label="What do these mean?" />
               </div>
               {chart.patterns.length === 0 ? (
                 <p className="text-sm text-slate-400">No major aspect patterns detected.</p>
@@ -209,9 +206,7 @@ export default function NatalChartPage() {
           <section className="report-section">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Hellenistic techniques</h2>
-              <Link to="/wiki#terms" className="text-xs text-aurora hover:underline">
-                What is this?
-              </Link>
+              <GlossaryHelp topic="hellenistic" label="What is this?" />
             </div>
             {hellenistic ? (
               <div className="report-pair">

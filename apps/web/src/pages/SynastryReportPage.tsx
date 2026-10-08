@@ -17,6 +17,7 @@ import { CompatibilityGauge } from "../components/dashboard/CompatibilityGauge.j
 import { HouseOccupancyChart } from "../components/dashboard/HouseOccupancyChart.js";
 import { AiChatDrawer } from "../components/ai/AiChatDrawer.js";
 import { ChartNavigation } from "../components/layout/ChartNavigation.js";
+import { GlossaryHelp } from "../components/chart/GlossaryHelp.js";
 
 export default function SynastryReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -149,9 +150,7 @@ export default function SynastryReportPage() {
         <section className="report-section" aria-labelledby="houses-explained-title">
           <div className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <h2 id="houses-explained-title" className="text-lg font-semibold">Houses explained</h2>
-            <Link to="/wiki#houses" className="text-xs text-aurora hover:underline">
-              What are houses?
-            </Link>
+            <GlossaryHelp topic="houses" label="What are houses?" />
           </div>
           <div className="report-pair">
             <div className="min-w-0">

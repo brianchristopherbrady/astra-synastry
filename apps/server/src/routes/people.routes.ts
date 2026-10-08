@@ -14,6 +14,7 @@ const personSchema = z.object({
   longitude: z.number().min(-180).max(180),
   locationName: z.string().min(1),
   timeUnknown: z.boolean().default(false),
+  gender: z.string().trim().max(60).default(""),
 });
 
 const personUpdateSchema = personSchema.partial();
@@ -63,7 +64,7 @@ peopleRouter.patch("/:id", async (req, res, next) => {
       return;
     }
     const birthChanged = BIRTH_FIELDS.some((field) => body[field] !== undefined && body[field] !== existing[field]);
-    const nameChanged = body.name !== undefined && body.name !== existing.name;
+    const nameChanged = (body.name !== undefined && body.name !== existing.name) || (body.gender !== undefined && body.gender !== existing.gender);
     const involving = { OR: [{ personAId: id }, { personBId: id }] };
 
     const person = await prisma.$transaction(async (tx) => {
@@ -86,7 +87,7 @@ peopleRouter.patch("/:id", async (req, res, next) => {
           });
         }
       } else if (nameChanged) {
-        // Readings address people by name, so regenerate them rather than show the old one.
+        // Readings address people by name and pronoun, so regenerate them rather than show stale ones.
         await tx.chart.updateMany({ where: { personId: id }, data: CLEARED_READING });
         await tx.synastryReport.updateMany({ where: involving, data: CLEARED_READING });
       }

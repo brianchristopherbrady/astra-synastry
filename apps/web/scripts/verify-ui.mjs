@@ -133,7 +133,7 @@ try {
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Sample Person");
   await page.getByLabel("Birth date & time (local)").fill("1991-05-20T10:30");
   await page.getByRole("combobox", { name: "Birth location" }).fill("London");
-  await page.getByRole("option").first().waitFor();
+  await page.getByRole("listbox", { name: "Location suggestions" }).getByRole("option").first().waitFor();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   assert.equal(await page.getByRole("textbox", { name: "Latitude", exact: true }).inputValue(), "51.5");

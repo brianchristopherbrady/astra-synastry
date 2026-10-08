@@ -293,7 +293,7 @@ export default function DashboardPage() {
                   <span className="person-monogram" aria-hidden="true">{p.name.trim().slice(0, 1).toUpperCase()}</span>
                   <div className="person-identity">
                     <h3 className="person-name">{p.name}</h3>
-                    <span className="person-meta">{p.localDateTime.split("T")[0]}{p.timeUnknown ? " · Time unknown" : ""}</span>
+                    <span className="person-meta">{p.localDateTime.split("T")[0]}{p.timeUnknown ? " · Time unknown" : ""}{p.gender && p.gender !== "Prefer not to say" ? ` · ${p.gender}` : ""}</span>
                     {p.locationName && <span className="person-meta"><MapPin size={12} aria-hidden="true" />{p.locationName}</span>}
                   </div>
                   <div className="person-actions">

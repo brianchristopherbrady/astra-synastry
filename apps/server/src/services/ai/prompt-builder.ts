@@ -1,7 +1,12 @@
 import { POINT_LABELS } from "@astro/shared";
 import type { AspectHit, Ayanamsa, ChartData, ReadingStyle, RelationshipType, SynastryData } from "@astro/shared";
 
-export const PROMPT_VERSION = "v3";
+export const PROMPT_VERSION = "v4";
+
+export interface PersonIdentity {
+  name: string;
+  gender?: string | null;
+}
 
 export const NATAL_SECTIONS = [
   "Overall Summary",
@@ -49,6 +54,20 @@ function zodiacNote(chart: ChartData): string[] {
   const ayanamsa = AYANAMSA_LABELS[chart.ayanamsa ?? "lahiri"];
   return [
     `All positions below are in the sidereal zodiac (${ayanamsa} ayanamsa), not the tropical zodiac. Interpret every sign exactly as listed, say "sidereal" when naming a sign would otherwise be ambiguous, and never convert positions back to tropical.`,
+  ];
+}
+
+/** Self-described gender is user text: flatten and quote it so it reads as data, never as instructions. */
+export function describeGender(gender: string | null | undefined): string {
+  const value = (gender ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+  if (!value || /^prefer not to say$/i.test(value)) return "not specified";
+  return JSON.stringify(value);
+}
+
+function identityNote(people: PersonIdentity[]): string[] {
+  return [
+    "Never infer anyone's gender from their name. Use pronouns that fit each person's stated gender identity below; if it is not specified or doesn't clearly imply pronouns, refer to them by name or with they/them. Avoid gender stereotypes.",
+    ...people.map((person) => `- ${person.name}: gender identity ${describeGender(person.gender)}`),
   ];
 }
 
@@ -103,17 +122,20 @@ function styleInstruction(style: ReadingStyle, customStyleText?: string): string
 /** Builds a fact-grounded prompt strictly from already-computed chart data (no invented placements). */
 export function buildSynastryPrompt(
   synastry: SynastryData,
-  personAName: string,
-  personBName: string,
+  personA: PersonIdentity,
+  personB: PersonIdentity,
   relationshipType: RelationshipType = "romantic",
   readingStyle: ReadingStyle = "clever",
   customStyleText?: string,
 ): string {
+  const personAName = personA.name;
+  const personBName = personB.name;
   const lines: string[] = [
     `You are an expert, grounded astrologer writing a synastry (relationship compatibility) analysis for ${personAName} and ${personBName}.`,
     relationshipFraming(relationshipType),
     styleInstruction(readingStyle, customStyleText),
     `Base your analysis STRICTLY on the computed placements and aspects listed below. Do not invent any placement, aspect, or house position that is not explicitly listed. If data is missing (e.g. no houses because a birth time is unknown), say so rather than guessing.`,
+    ...identityNote([personA, personB]),
     ...zodiacNote(synastry.personAChart),
     "",
     `## ${personAName}'s placements`,
@@ -142,10 +164,12 @@ function describePatterns(chart: ChartData): string {
 }
 
 /** Builds a fact-grounded prompt for a single person's own natal chart reading. */
-export function buildNatalPrompt(chart: ChartData, personName: string): string {
+export function buildNatalPrompt(chart: ChartData, person: PersonIdentity): string {
+  const personName = person.name;
   const lines: string[] = [
     `You are an expert, grounded astrologer writing a personal natal chart reading for ${personName}.`,
     `Base your analysis STRICTLY on the computed placements, aspects, and patterns listed below. Do not invent any placement, aspect, or house position that is not explicitly listed. If houses are missing (birth time unknown), say so rather than guessing.`,
+    ...identityNote([person]),
     ...zodiacNote(chart),
     "",
     `## ${personName}'s placements`,
@@ -164,11 +188,13 @@ export function buildNatalPrompt(chart: ChartData, personName: string): string {
 }
 
 /** Grounding context for a natal chat: the raw facts, without the "write a full report" instruction. */
-export function buildNatalChatContext(chart: ChartData, personName: string): string {
+export function buildNatalChatContext(chart: ChartData, person: PersonIdentity): string {
+  const personName = person.name;
   const lines: string[] = [
     `You are an expert, grounded astrologer answering questions about ${personName}'s natal chart.`,
     `Base every answer STRICTLY on the computed data below. Do not invent any placement, aspect, or house position that is not explicitly listed. If houses are missing (birth time unknown), say so rather than guessing. Keep answers conversational and reasonably concise unless the user asks for more depth.`,
     CHAT_FORMAT_RULES,
+    ...identityNote([person]),
     ...zodiacNote(chart),
     "",
     `## ${personName}'s placements`,
@@ -186,18 +212,21 @@ export function buildNatalChatContext(chart: ChartData, personName: string): str
 /** Grounding context for a synastry chat: the raw facts, without the "write a full report" instruction. */
 export function buildSynastryChatContext(
   synastry: SynastryData,
-  personAName: string,
-  personBName: string,
+  personA: PersonIdentity,
+  personB: PersonIdentity,
   relationshipType: RelationshipType = "romantic",
   readingStyle: ReadingStyle = "clever",
   customStyleText?: string,
 ): string {
+  const personAName = personA.name;
+  const personBName = personB.name;
   const lines: string[] = [
     `You are an expert, grounded astrologer answering questions about the synastry (relationship compatibility) between ${personAName} and ${personBName}.`,
     relationshipFraming(relationshipType),
     styleInstruction(readingStyle, customStyleText),
     `Base every answer STRICTLY on the computed data below. Do not invent any placement, aspect, or house position that is not explicitly listed. Keep answers conversational and reasonably concise unless the user asks for more depth.`,
     CHAT_FORMAT_RULES,
+    ...identityNote([personA, personB]),
     ...zodiacNote(synastry.personAChart),
     "",
     `## ${personAName}'s placements`,

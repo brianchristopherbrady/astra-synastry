@@ -115,8 +115,8 @@ aiRouter.post("/synastry/:id", aiRateLimiter, async (req, res, next) => {
     const relationshipType = report.relationshipType as "romantic" | "friendship";
     const prompt = buildSynastryPrompt(
       synastryData,
-      report.personA.name,
-      report.personB.name,
+      report.personA,
+      report.personB,
       relationshipType,
       report.readingStyle as "clever" | "flirty" | "funny" | "mythic" | "brutal" | "other",
       report.customStyleText,
@@ -167,7 +167,7 @@ aiRouter.post("/natal/:personId", aiRateLimiter, async (req, res, next) => {
       return;
     }
 
-    const prompt = buildNatalPrompt(record.chart, person.name);
+    const prompt = buildNatalPrompt(record.chart, person);
     const aiProvider = resolveProvider(providerName);
     const spec: ReadingSpec = { schemaName: "natal_reading", sections: NATAL_SECTIONS, archetype: false, headingLevel: 2 };
 
@@ -202,7 +202,7 @@ aiRouter.post("/natal/:personId/chat", aiRateLimiter, async (req, res, next) => 
 
     const record = await getOrComputeChart(person, houseSystem as HouseSystem, zodiacMode, ayanamsa);
     const providerName: AiProviderName = provider ?? "anthropic";
-    const context = buildNatalChatContext(record.chart, person.name);
+    const context = buildNatalChatContext(record.chart, person);
     const aiProvider = resolveProvider(providerName);
 
     res.setHeader("Content-Type", "text/event-stream");
@@ -238,8 +238,8 @@ aiRouter.post("/synastry/:id/chat", aiRateLimiter, async (req, res, next) => {
     const synastryData = JSON.parse(report.dataJson) as SynastryData;
     const context = buildSynastryChatContext(
       synastryData,
-      report.personA.name,
-      report.personB.name,
+      report.personA,
+      report.personB,
       report.relationshipType as "romantic" | "friendship",
       report.readingStyle as "clever" | "flirty" | "funny" | "mythic" | "brutal" | "other",
       report.customStyleText,

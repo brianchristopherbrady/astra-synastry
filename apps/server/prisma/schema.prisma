@@ -16,6 +16,8 @@ model Person {
   longitude     Float
   locationName  String
   timeUnknown   Boolean  @default(false)
+  // Self-described gender identity shown to the AI so it never infers gender from a name; empty = not specified.
+  gender        String   @default("")
   createdAt     DateTime @default(now())
 
   charts        Chart[]

@@ -59,6 +59,9 @@ pnpm dev:web      # http://localhost:5173 (proxies /api to the server)
   format requires bumping `PROMPT_VERSION` so cached readings regenerate.
 - AI readings follow the chart's zodiac. Sidereal prompts name the ayanamsa so the model doesn't
   reinterpret positions as tropical, and each natal zodiac/ayanamsa combination caches its own reading.
+- Each person's optional gender identity is passed to the AI (self-described text is flattened and
+  quoted as data). Prompts forbid inferring gender from names; without a stated identity the AI uses
+  the person's name or they/them. Changing a person's name or gender clears their cached readings.
 - Geocoding/timezone resolution uses free, keyless services (OpenStreetMap Nominatim + the local `geo-tz`
   database), so no additional API keys are needed for birth-place lookup.
 

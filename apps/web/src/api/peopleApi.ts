@@ -4,6 +4,8 @@ import { api } from "./client.js";
 export interface PersonRecord extends BirthData {
   id: string;
   name: string;
+  /** Self-described gender identity; empty when not specified. */
+  gender: string;
   createdAt: string;
 }
 

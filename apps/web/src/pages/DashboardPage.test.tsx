@@ -11,7 +11,7 @@ vi.mock("../api/peopleApi.js", () => ({ peopleApi: { list: vi.fn(), create: vi.f
 vi.mock("../api/geoApi.js", () => ({ geoApi: { search: vi.fn().mockResolvedValue([]) } }));
 vi.mock("../api/chartsApi.js", () => ({ chartsApi: { pregenerateReading: vi.fn() } }));
 
-const person = { id: "example", name: "Alex Morgan", localDateTime: "1990-06-15T12:00:00", timezone: "Europe/London", locationName: "London", latitude: 51.5, longitude: -0.12, timeUnknown: false, createdAt: "2026-09-20" };
+const person = { id: "example", name: "Alex Morgan", localDateTime: "1990-06-15T12:00:00", timezone: "Europe/London", locationName: "London", latitude: 51.5, longitude: -0.12, timeUnknown: false, gender: "", createdAt: "2026-09-20" };
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -91,6 +91,7 @@ describe("Workspace person dialogs", () => {
       latitude: 51.5,
       longitude: -0.12,
       timeUnknown: false,
+      gender: "",
     });
     expect(screen.getByText("Person updated.").getAttribute("role")).toBe("status");
   });

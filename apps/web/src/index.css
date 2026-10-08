@@ -128,7 +128,7 @@
   @media (min-width: 64rem) { .wiki-layout { grid-template-columns: 12rem minmax(0, 1fr); gap: 3rem; } .wiki-nav { display: flex; flex-direction: column; position: sticky; inset-block-start: var(--space-6); align-self: start; } }
   .segmented-control { display: flex; flex-wrap: wrap; align-self: start; border: 1px solid rgb(var(--color-border)); border-radius: var(--radius-control); }
   .segmented-control button { min-block-size: var(--control-size); }
-  .segmented-control button[aria-pressed="true"] { background: rgb(var(--color-action)); color: rgb(var(--color-on-action)); text-decoration: underline; text-underline-offset: 0.25em; }
+  .segmented-control button[aria-pressed="true"] { background: rgb(var(--color-action)); color: rgb(var(--color-on-action)); }
   .segmented-control button[aria-pressed="false"] { background: rgb(var(--color-surface)); color: rgb(var(--color-text)); }
   .data-scroll { position: relative; max-inline-size: 100%; overflow: auto; padding: var(--space-1); }
   .data-scroll table { min-inline-size: 34rem; }

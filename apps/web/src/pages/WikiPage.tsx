@@ -56,7 +56,7 @@ export default function WikiPage() {
         {GENERAL_TERMS.some((entry) => entry.implemented === false) && (
           <p className="mb-3 text-xs text-slate-500">
             Terms marked <span className="rounded border border-slate-600 px-1.5 py-0.5 text-slate-400">Not in this app yet</span> are explained for
-            context but aren't something Astra Synastry can generate for you today.
+            context but aren't something Astra can generate for you today.
           </p>
         )}
         <div className="grid gap-3 sm:grid-cols-2">

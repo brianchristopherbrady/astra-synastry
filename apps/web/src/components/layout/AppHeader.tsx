@@ -8,7 +8,7 @@ export function AppHeader() {
     <header className="app-header">
       <Link to="/" className="app-brand">
         <Orbit aria-hidden="true" className="brand-mark" strokeWidth={1.25} />
-        <span>Astra <span className="brand-subtitle">Synastry</span></span>
+        <span>Astra <span className="brand-subtitle">Charts &amp; Readings</span></span>
       </Link>
       <nav aria-label="Primary" className="app-nav">
         <NavLink to="/" end className="nav-link">

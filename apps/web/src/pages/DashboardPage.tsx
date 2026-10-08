@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Compass, Pencil, Plus, Save, Trash2, Users, Orbit, MapPin } from "lucide-react";
+import { Compass, GripVertical, Pencil, Plus, Save, Trash2, UserCheck, UserPlus, Users, Orbit, MapPin } from "lucide-react";
 import type { Ayanamsa, ReadingStyle, RelationshipType, ZodiacMode } from "@astro/shared";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { synastryApi } from "../api/synastryApi.js";
@@ -8,6 +8,7 @@ import { chartsApi } from "../api/chartsApi.js";
 import { addSessionReading, removeSessionReadingsFor } from "../lib/sessionReadings.js";
 import { draftFromPerson, draftToPayload, emptyPersonDraft, PersonForm, type PersonDraft } from "../components/forms/PersonForm.js";
 import { Modal } from "../components/ui/Modal.js";
+import { PERSON_DRAG_TYPE, ReadingSlot } from "../components/dashboard/ReadingSlot.js";
 
 const READING_STYLES: { value: ReadingStyle; label: string }[] = [
   { value: "clever", label: "Clever" },
@@ -48,6 +49,44 @@ export default function DashboardPage() {
   const [readingStyle, setReadingStyle] = useState<ReadingStyle>("clever");
   const [customStyleText, setCustomStyleText] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [readingNotice, setReadingNotice] = useState("");
+
+  const personA = people.find((p) => p.id === personAId);
+  const personB = people.find((p) => p.id === personBId);
+
+  /** Places a person in a slot; dropping someone already in the other slot swaps them, and a lone person always sits first. */
+  function assignSlot(slot: "a" | "b", id: string): void {
+    let a = personAId;
+    let b = personBId;
+    if (slot === "a") {
+      if (b === id) b = a;
+      a = id;
+    } else {
+      if (a === id) a = b;
+      b = id;
+    }
+    if (!a && b) [a, b] = [b, ""];
+    setPersonAId(a);
+    setPersonBId(b);
+  }
+
+  function clearSlot(slot: "a" | "b"): void {
+    if (slot === "a") setPersonAId(personBId);
+    setPersonBId("");
+  }
+
+  function toggleInReading(person: PersonRecord): void {
+    if (person.id === personAId || person.id === personBId) {
+      clearSlot(person.id === personAId ? "a" : "b");
+      setReadingNotice(`${person.name} removed from the reading.`);
+    } else if (!personAId || !personBId) {
+      assignSlot(personAId ? "b" : "a", person.id);
+      setReadingNotice(`${person.name} added to the reading.`);
+    } else {
+      setReadingNotice("Both places are taken. Remove someone from the reading first.");
+    }
+  }
 
   async function loadPeople(): Promise<void> {
     setLoading(true);
@@ -106,8 +145,7 @@ export default function DashboardPage() {
   }
 
   async function onGenerateReading(): Promise<void> {
-    const personA = people.find((p) => p.id === personAId);
-    if (!personA || personAId === personBId) return;
+    if (!personA) return;
     const ayanamsaLabel = AYANAMSA_OPTIONS.find((opt) => opt.value === ayanamsa)?.label ?? ayanamsa;
     const zodiacDetail = zodiacMode === "sidereal" ? `sidereal (${ayanamsaLabel})` : "tropical";
 
@@ -158,8 +196,7 @@ export default function DashboardPage() {
       await peopleApi.remove(id);
       removeSessionReadingsFor(id);
       await loadPeople();
-      if (personAId === id) setPersonAId("");
-      if (personBId === id) setPersonBId("");
+      if (personAId === id || personBId === id) clearSlot(personAId === id ? "a" : "b");
       setPersonToRemove(null);
       setStatus("Person removed.");
     } catch (err) {
@@ -236,8 +273,23 @@ export default function DashboardPage() {
             </div>
           ) : (
             <ul className="people-list">
-              {people.map((p) => (
-                <li key={p.id} className="person-row">
+              {people.map((p) => {
+                const inReading = p.id === personAId || p.id === personBId;
+                return (
+                <li
+                  key={p.id}
+                  className="person-row"
+                  draggable
+                  data-dragging={draggingId === p.id ? "true" : undefined}
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(PERSON_DRAG_TYPE, p.id);
+                    event.dataTransfer.setData("text/plain", p.name);
+                    event.dataTransfer.effectAllowed = "copy";
+                    setDraggingId(p.id);
+                  }}
+                  onDragEnd={() => setDraggingId(null)}
+                >
+                  <GripVertical size={16} className="person-grip" aria-hidden="true" />
                   <span className="person-monogram" aria-hidden="true">{p.name.trim().slice(0, 1).toUpperCase()}</span>
                   <div className="person-identity">
                     <h3 className="person-name">{p.name}</h3>
@@ -245,9 +297,18 @@ export default function DashboardPage() {
                     {p.locationName && <span className="person-meta"><MapPin size={12} aria-hidden="true" />{p.locationName}</span>}
                   </div>
                   <div className="person-actions">
-                    <Link className="btn-secondary" to={`/chart/${p.id}`} aria-label={`Open ${p.name}'s natal chart`}>
+                    <Link className="btn-secondary" to={`/chart/${p.id}`} draggable={false} aria-label={`Open ${p.name}'s natal chart`}>
                       <Compass size={16} aria-hidden="true" /> Natal chart
                     </Link>
+                    <button
+                      className="icon-button"
+                      aria-pressed={inReading}
+                      aria-label={`Include ${p.name} in the reading`}
+                      title={inReading ? `Remove ${p.name} from the reading` : `Add ${p.name} to the reading`}
+                      onClick={() => toggleInReading(p)}
+                    >
+                      {inReading ? <UserCheck size={16} aria-hidden="true" /> : <UserPlus size={16} aria-hidden="true" />}
+                    </button>
                     <button className="icon-button" title={`Edit ${p.name}`} aria-label={`Edit ${p.name}`} disabled={saving} onClick={() => openEditor(p)}>
                       <Pencil size={16} aria-hidden="true" />
                     </button>
@@ -256,38 +317,42 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </section>
 
         <section className="workspace-comparison" aria-labelledby="comparison-title">
-          <div className="section-heading"><h2 id="comparison-title"><Orbit size={18} aria-hidden="true" /> Run a reading</h2><span className="eyebrow">Natal or synastry</span></div>
+          <div className="section-heading"><h2 id="comparison-title"><Orbit size={18} aria-hidden="true" /> Run a reading</h2><span className="eyebrow">{personB ? "Synastry" : personA ? "Natal" : "Natal or synastry"}</span></div>
           {people.length === 0 ? (
             <p className="empty-state text-sm text-muted">Add a person to run a reading.</p>
           ) : (
             <div className="comparison-form">
-              <div className="report-pair comparison-pair">
-              <label className="field-label" htmlFor="person-a">Person A
-              <select id="person-a" className="input" value={personAId} onChange={(e) => setPersonAId(e.target.value)}>
-                <option value="">Select person</option>
-                {people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              </label>
-              <label className="field-label" htmlFor="person-b">Person B (optional)
-              <select id="person-b" className="input" value={personBId} onChange={(e) => setPersonBId(e.target.value)}>
-                <option value="">None (natal reading)</option>
-                {people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              </label>
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-muted">
+                  Drag people from Your people into the places below, or press the include button{" "}
+                  <span className="whitespace-nowrap">(<UserPlus size={14} className="inline align-[-2px]" aria-hidden="true" />)</span> on someone&apos;s card. One person gives a natal reading; add a second for synastry.
+                </p>
+                <div className="reading-slots">
+                  <ReadingSlot
+                    label="First person"
+                    emptyText="Drop someone from Your people here"
+                    person={personA}
+                    dragActive={draggingId !== null}
+                    onDropPerson={(id) => assignSlot("a", id)}
+                    onClear={() => clearSlot("a")}
+                  />
+                  <ReadingSlot
+                    label="Second person (optional)"
+                    emptyText="Add a second person for a synastry reading"
+                    person={personB}
+                    dragActive={draggingId !== null}
+                    onDropPerson={(id) => assignSlot("b", id)}
+                    onClear={() => clearSlot("b")}
+                  />
+                </div>
+                <p role="status" className="text-xs text-muted">{readingNotice}</p>
               </div>
 
               <fieldset className="flex flex-col gap-1">
@@ -326,7 +391,7 @@ export default function DashboardPage() {
                 )}
               </fieldset>
 
-              {personBId && (
+              {personB && (
               <>
               <fieldset className="flex flex-col gap-1">
                 <legend className="text-xs text-slate-400">Reading type</legend>
@@ -378,10 +443,9 @@ export default function DashboardPage() {
               </>
               )}
 
-              {personAId && personAId === personBId && <p className="text-sm text-danger">Choose two different people, or set Person B to None.</p>}
-              <button className="btn-primary" disabled={generating || !personAId || personAId === personBId} onClick={() => void onGenerateReading()}>
+              <button className="btn-primary" disabled={generating || !personA} onClick={() => void onGenerateReading()}>
                 <Orbit size={18} aria-hidden="true" />
-                {generating ? "Generating…" : personBId ? "Generate synastry report" : "Generate natal reading"}
+                {generating ? "Generating…" : personB ? "Generate synastry report" : "Generate natal reading"}
               </button>
             </div>
           )}

@@ -150,8 +150,12 @@ try {
   await page.getByRole("dialog").waitFor({ state: "detached" });
   evidence.interactions.push("Geocoder keyboard selection, save failure/draft/retry/success, remove cancel/confirmation");
 
-  await page.getByRole("combobox", { name: "Person A", exact: true }).selectOption("alex");
-  await page.getByRole("combobox", { name: "Person B (optional)", exact: true }).selectOption("jordan");
+  await page.getByRole("button", { name: "Include Alex Morgan in the reading", exact: true }).click();
+  // Drag between side-by-side panels; narrow layouts rely on the include button instead.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole("listitem").filter({ hasText: "Jordan Lee" }).dragTo(page.getByRole("group", { name: "Second person (optional)" }));
+  await page.setViewportSize({ width: 375, height: 812 });
+  assert.equal(await page.getByRole("button", { name: "Include Jordan Lee in the reading" }).getAttribute("aria-pressed"), "true");
   await page.getByRole("button", { name: "Sidereal", exact: true }).click();
   await page.getByLabel("Ayanamsa").selectOption("fagan_bradley");
   await page.getByLabel("Friendship", { exact: true }).check();
@@ -163,7 +167,7 @@ try {
   assert.equal(submittedComparison.ayanamsa, "fagan_bradley");
   assert.equal(submittedComparison.relationshipType, "friendship");
   assert.equal(submittedComparison.customStyleText, "Reflective");
-  evidence.interactions.push("Comparison settings and report navigation");
+  evidence.interactions.push("Reading places via include button and drag and drop, comparison settings and report navigation");
 
   await page.goto(`${origin}/chart/alex`);
   await page.locator("button.placement").first().focus();

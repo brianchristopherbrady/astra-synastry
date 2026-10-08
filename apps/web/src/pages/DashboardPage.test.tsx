@@ -56,7 +56,7 @@ describe("Workspace person dialogs", () => {
     vi.mocked(peopleApi.list).mockResolvedValue([]);
     fireEvent.click(screen.getByRole("button", { name: "Remove person" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(screen.getByRole("status").textContent).toBe("Person removed.");
+    expect(screen.getByText("Person removed.").getAttribute("role")).toBe("status");
   });
 
   it("exposes an empty-state add action and keeps the unknown-time date input", async () => {
@@ -93,15 +93,14 @@ describe("Workspace person dialogs", () => {
       longitude: -0.12,
       timeUnknown: false,
     });
-    expect(screen.getByRole("status").textContent).toBe("Person updated.");
+    expect(screen.getByText("Person updated.").getAttribute("role")).toBe("status");
   });
 });
 
 describe("Reading form", () => {
   afterEach(() => removeSessionReadingsFor("example"));
 
-  it("runs a single-person natal reading when Person B is left empty", async () => {
-    vi.mocked(chartsApi.pregenerateReading).mockResolvedValue(undefined);
+  function renderWithChartRoute() {
     render(
       <MemoryRouter>
         <Routes>
@@ -110,11 +109,44 @@ describe("Reading form", () => {
         </Routes>
       </MemoryRouter>,
     );
-    fireEvent.change(await screen.findByRole("combobox", { name: "Person A" }), { target: { value: "example" } });
+  }
+
+  it("runs a single-person natal reading from the include button", async () => {
+    vi.mocked(chartsApi.pregenerateReading).mockResolvedValue(undefined);
+    renderWithChartRoute();
+    const include = await screen.findByRole("button", { name: "Include Alex Morgan in the reading" });
+    expect(include.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(include);
+    expect(include.getAttribute("aria-pressed")).toBe("true");
+    expect(within(screen.getByRole("group", { name: "First person" })).getByText("Alex Morgan")).toBeTruthy();
     expect(screen.queryByRole("radio", { name: "Romantic" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Generate natal reading" }));
     expect(await screen.findByText("Natal chart page")).toBeTruthy();
     expect(chartsApi.pregenerateReading).toHaveBeenCalledWith("example", { zodiacMode: "tropical", ayanamsa: "lahiri" });
     expect(getSessionReadings()[0]).toMatchObject({ path: "/chart/example", label: "Alex Morgan", personIds: ["example"] });
+  });
+
+  it("fills places by drag and drop, swaps on re-drop, and switches to synastry with two people", async () => {
+    const jordan = { ...person, id: "jordan", name: "Jordan Lee" };
+    vi.mocked(peopleApi.list).mockResolvedValue([person, jordan]);
+    renderWithChartRoute();
+    const dragged = (id: string) => ({ dataTransfer: { types: ["application/x-astra-person"], getData: () => id, dropEffect: "" } });
+    const first = await screen.findByRole("group", { name: "First person" });
+    const second = screen.getByRole("group", { name: "Second person (optional)" });
+
+    fireEvent.drop(second, dragged("jordan"));
+    expect(within(first).getByText("Jordan Lee")).toBeTruthy();
+    fireEvent.drop(second, dragged("example"));
+    expect(within(second).getByText("Alex Morgan")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Generate synastry report" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Romantic" })).toBeTruthy();
+
+    fireEvent.drop(first, dragged("example"));
+    expect(within(first).getByText("Alex Morgan")).toBeTruthy();
+    expect(within(second).getByText("Jordan Lee")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Include Jordan Lee in the reading" }));
+    expect(within(second).queryByText("Jordan Lee")).toBeNull();
+    expect(screen.getByRole("button", { name: "Generate natal reading" })).toBeTruthy();
   });
 });

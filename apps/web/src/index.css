@@ -111,8 +111,23 @@
   .person-actions .icon-button { border-color: transparent; color: rgb(var(--color-muted)); }
   .person-actions .icon-button:hover { color: rgb(var(--color-text)); }
   .person-actions .remove-person:hover { color: rgb(var(--color-danger)); }
+  .person-actions .icon-button[aria-pressed="true"] { border-color: rgb(var(--color-accent) / 0.5); color: rgb(var(--color-accent)); background: rgb(var(--color-accent) / 0.08); }
+  .person-row[draggable="true"] { cursor: grab; }
+  .person-row[data-dragging="true"] { opacity: 0.5; }
+  .person-grip { flex: none; margin-inline-end: calc(var(--space-2) * -1); color: rgb(var(--color-muted)); }
+  /* Touch screens can't drag rows reliably, so they rely on the include button instead of a grip affordance. */
+  @media (pointer: coarse) { .person-grip { display: none; } }
   .comparison-form { display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-6) var(--inset-row); }
-  .comparison-form .comparison-pair { gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+  .reading-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--space-3); }
+  .reading-slot { display: flex; flex-direction: column; gap: var(--space-2); min-block-size: 7.5rem; min-inline-size: 0; padding: var(--space-3); border: 2px dashed rgb(var(--color-border)); border-radius: var(--radius-panel); background: rgb(var(--color-surface) / 0.4); transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard); }
+  .reading-slot[data-filled="true"] { border-style: solid; border-color: rgb(var(--color-accent) / 0.45); background: rgb(var(--color-surface)); }
+  .reading-slot[data-target="true"] { border-color: rgb(var(--color-action) / 0.7); }
+  .reading-slot[data-over="true"] { border-style: solid; border-color: rgb(var(--color-action)); background: rgb(var(--color-action) / 0.16); box-shadow: 0 0 0 3px rgb(var(--color-action) / 0.25); }
+  .reading-slot-label { font-size: 0.75rem; font-weight: 500; color: rgb(var(--color-muted)); }
+  .reading-slot-empty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); text-align: center; font-size: var(--text-small); color: rgb(var(--color-muted)); }
+  .reading-slot-person { display: flex; flex: 1; align-items: center; gap: var(--space-3); min-inline-size: 0; }
+  .reading-slot-person .person-monogram { inline-size: 2.5rem; block-size: 2.5rem; font-size: 1.25rem; }
+  .reading-slot-person .icon-button { border-color: transparent; color: rgb(var(--color-muted)); }
   .field-label { display: flex; flex-direction: column; gap: var(--space-2); min-inline-size: 0; font-size: 0.875rem; color: rgb(var(--color-muted)); }
   .empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: 3rem var(--space-4); color: rgb(var(--color-muted)); text-align: center; }
   @media (min-width: 60rem) { .workspace-layout { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 4rem; } .workspace-comparison { border-inline-start: 1px solid rgb(var(--color-border) / 0.3); padding-inline-start: var(--space-8); } }

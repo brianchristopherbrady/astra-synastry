@@ -179,7 +179,8 @@ try {
   await geometry("sidereal-mobile");
   await page.getByRole("button", { name: "Ask AI", exact: true }).click();
   await page.getByRole("region", { name: "Conversation" }).getByText(/A thoughtful balance/).waitFor();
-  for (let step = 0; step < 12; step++) { await page.keyboard.press("Tab"); assert.ok(await page.getByRole("dialog").evaluate(dialog => dialog.contains(document.activeElement))); }
+  // Chromium 153+ lets Tab leave a native modal for browser chrome (body in headless); background controls must stay unreachable.
+  for (let step = 0; step < 12; step++) { await page.keyboard.press("Tab"); assert.ok(await page.getByRole("dialog").evaluate(dialog => dialog.contains(document.activeElement) || document.activeElement === document.body)); }
   await page.setViewportSize({ width: 667, height: 375 });
   await geometry("drawer-landscape");
   await accessibility("drawer-landscape");

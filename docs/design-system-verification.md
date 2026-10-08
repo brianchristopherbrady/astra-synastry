@@ -162,3 +162,32 @@ Build and available scoped tests pass. Existing root-test/lint blockers are reco
 cross-engine/mobile-device testing and persistent visual regression remain open
 release gates. Do not describe this work as fully WCAG-conformant or independently
 verified until those checks are completed.
+
+## Follow-up: responsive and padding pass (2026-10-08)
+
+Findings from live inspection with real saved data (baseline had zero document overflow
+at 320-1920px, so this pass targeted composition defects rather than overflow):
+
+- Person rows had a hover surface with no inline padding (monogram flush to the edge);
+  chart-view tabs had the same defect via `padding-inline: 0`. Added `--inset-row`.
+- At 375px the primary nav needed 330px of 328px, orphaning "Wiki" on its own row.
+- `overflow-wrap: anywhere` split the "Vx" glyph across two lines in transit rows.
+- Between ~40 and 64rem the wheel sat alone, centered, above an 18-chip legend.
+
+Results (Windows, Node 24.21.0, Playwright Chromium 153.0.8010.12, dev server
+`localhost:5173`):
+
+| Check | Result |
+| --- | --- |
+| `pnpm --filter @astro/web test` | 20 tests passed across 5 files |
+| `pnpm --filter @astro/web build` | Typecheck and production build passed |
+| `verify:ui` (fixture-backed) | 52 geometry checks, 8 axe scans, zero violations/runtime errors |
+| Real-data sweep, 6 routes x 320-1920px | Zero document overflow; wheels square |
+| Nav at 320/375/479px | All links on one row; header 185px -> 133px tall at 375px |
+| Transit glyph clusters at 320/375px | Single line in all 25 rows; orb wraps when needed |
+| Wheel + legend at 700/768/1023px | Side by side; stacked at 600px and in the 22rem rail |
+
+`verify:ui` drawer assertion updated: in Chromium 153, Tab from the last control of a
+native modal moves to browser chrome (`body` in headless) before cycling back. Reproduced
+identically on the unmodified code; background controls stay unreachable. The open
+release gates above are unchanged.

@@ -19,23 +19,23 @@ export function TransitList({ hits, targetLabel, emptyMessage }: TransitListProp
   }
 
   return (
-    <ul className="flex flex-col gap-1.5 text-sm">
+    <ul className="transit-list">
       {sorted.map((hit, idx) => (
         <li
           key={`${hit.pointA}-${hit.aspect}-${hit.pointB}-${idx}`}
-          className="flex items-center justify-between gap-3 rounded border border-slate-700 bg-slate-900/60 px-3 py-1.5"
+          className="transit-row"
         >
-          <span className="flex items-center gap-1.5 text-slate-200">
+          <span className="transit-glyphs">
             <span title={POINT_LABELS[hit.pointA]}>{POINT_GLYPHS[hit.pointA]}</span>
-            <span className="text-slate-500" title={hit.aspect}>
+            <span className="text-muted" title={hit.aspect}>
               {aspectDefinition(hit.aspect).glyph}
             </span>
             <span title={POINT_LABELS[hit.pointB]}>{POINT_GLYPHS[hit.pointB]}</span>
-            <span className="text-xs capitalize text-slate-400">
-              transiting {POINT_LABELS[hit.pointA]} {hit.aspect} natal {POINT_LABELS[hit.pointB]}
-            </span>
           </span>
-          <span className="shrink-0 text-xs text-slate-500">{`${hit.orb.toFixed(2)}\u00b0 orb${hit.applying ? " \u00b7 applying" : ""}`}</span>
+          <span className="transit-description">
+            transiting {POINT_LABELS[hit.pointA]} {hit.aspect} natal {POINT_LABELS[hit.pointB]}
+          </span>
+          <span className="transit-orb">{`${hit.orb.toFixed(2)}\u00b0 orb${hit.applying ? " \u00b7 applying" : ""}`}</span>
         </li>
       ))}
     </ul>

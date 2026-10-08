@@ -90,18 +90,20 @@ export default function SynastryReportPage() {
 
       <div className="report-layout">
         <div className="report-chart">
-          <ChartWheel
-            innerChart={report.personAChart}
-            outerChart={report.personBChart}
-            crossAspects={report.crossAspects}
-            hiddenPoints={hiddenPoints}
-            innerLabel={report.personAName}
-            outerLabel={report.personBName}
-          />
-          <p className="text-xs text-slate-400">
-            Inner wheel: <span className="text-aurora">{report.personAName}</span> {"\u2022"} Outer wheel:{" "}
-            <span className="text-stardust">{report.personBName}</span>
-          </p>
+          <figure className="report-wheel">
+            <ChartWheel
+              innerChart={report.personAChart}
+              outerChart={report.personBChart}
+              crossAspects={report.crossAspects}
+              hiddenPoints={hiddenPoints}
+              innerLabel={report.personAName}
+              outerLabel={report.personBName}
+            />
+            <figcaption className="text-xs text-muted">
+              Inner wheel: <span className="text-aurora">{report.personAName}</span> {"\u2022"} Outer wheel:{" "}
+              <span className="text-stardust">{report.personBName}</span>
+            </figcaption>
+          </figure>
           <ChartPointLegend
             hiddenPoints={hiddenPoints}
             onToggle={togglePoint}

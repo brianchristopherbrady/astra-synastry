@@ -79,7 +79,7 @@ data and must not depend on browser styling.
 | --- | --- | --- |
 | Foundation | `--palette-ink`, `--palette-violet`, `--space-*`, `--font-*` | Reusable values, not component API |
 | Semantic | `--color-canvas`, `--color-text`, `--color-muted`, `--color-action`, `--color-danger`, `--color-focus` | Consume these by intent |
-| Component/layout | `--control-size`, `--radius-control`, `--radius-panel`, `--content-width`, `--layer-*` | Only stable shared decisions |
+| Component/layout | `--control-size`, `--radius-control`, `--radius-panel`, `--inset-row`, `--content-width`, `--layer-*` | Only stable shared decisions |
 
 RGB channel tokens support Tailwind alpha modifiers and SVG values such as
 `rgb(var(--color-accent))`. Gold/violet brand roles retain existing color identity;
@@ -112,6 +112,7 @@ interaction checks exist; it does not mean independent accessibility certificati
 | `AiChatDrawer` | Existing endpoints/title/archetype callback | Native modal, close before interacting with chart; keyboard separator and range resize alternative; named scroll region, labelled composer; IME/Shift+Enter retained | Adopted |
 | `AppHeader` and shell | Existing routes/last-chart link | One header/main, skip link, wrapping navigation, `aria-current` | Adopted |
 | `ChartDataList` | `label`, entries of `label`, numeric `value`, optional `onSelect` | Visible data alternatives; actions are real buttons, not clickable SVG-only targets | Adopted |
+| `TransitList` | `hits`, `targetLabel`, optional `emptyMessage` | `.transit-row`: glyph cluster never breaks; orb wraps under the description when the row is narrow | Adopted |
 | `ChartPointLegend` | Hidden point set, toggle/show/hide callbacks | Pressed state, visible text and strike-through when hidden | Adopted |
 | `AspectGrid` | Existing point axes and aspects | Native headers/caption; named focusable local scroll region; aspect/orb text alternatives retained | Adopted |
 | Metric charts | Existing balance/chart and optional selection callback | Semantic colors, fixed plot block size, no animation, visible counts and keyboard alternatives | Adopted |
@@ -140,12 +141,24 @@ announced. Location search failure must not prevent direct location/coordinate e
 
 ## Layout recipes
 
-- `.app-page`: centered 80rem maximum, 1rem gutters (1.5rem at 64rem), trailing space
-  for the fixed launcher. Header/nav wrap in DOM order without a hidden mobile menu.
+- `.app-page`: centered `--content-width` maximum, 1rem gutters (1.5rem at 64rem), trailing space
+  for the fixed launcher. Header/nav wrap in DOM order without a hidden mobile menu; below
+  30rem the primary links share one full-width row with icons stacked over labels, so no
+  destination is orphaned on a second line.
+- `--inset-row` (0.75rem, 1rem at 40rem): inline padding for list rows and section headings
+  that show a hover surface, so content never touches the highlighted edge. Headings use the
+  same inset so their icons align with row content. Never set `padding-inline: 0` on a
+  `.nav-link` or other control with a hover background.
+- `.page-title`: 2rem below 40rem, 2.5rem above; `.page-heading` block margin follows the
+  same step. Stepped rem sizes, not viewport-scaled type.
 - `.report-pair`: auto-fit columns with an 18rem preferred minimum, bounded by 100%
   available width. Use for person pairs, chart comparisons, and form sections.
 - `.report-layout`: one column below 64rem; then a 22rem chart rail plus flexible
   detail column. This leaves adequate width for real chart labels and report text.
+- `.report-chart`: wrapping flex row. The wheel (`svg` child or `.report-wheel` figure when a
+  caption is needed; 22rem basis, 420px max) and `.point-legend` (16rem basis) sit side by
+  side whenever both fit (roughly 40-64rem viewports) and stack in the 22rem rail or on phones.
+  No breakpoint: the item bases decide.
 - `.report-details`: named inline-size container. `.report-metrics` becomes three
   columns at a **38rem container** width, not a viewport breakpoint, so each plot has
   useful room. Details/rail and nested sections permit intrinsic shrinkage.
@@ -158,6 +171,8 @@ announced. Location search failure must not prevent direct location/coordinate e
   height; `.chat-drawer`: end-aligned, viewport bounded, preserved 320-900px requested
   width, independently scrolling conversation. Safe-area padding protects composer.
 - Charts use intrinsic widths and stable plot geometry; no content is deleted to fit.
+- `.wiki-nav`: 2-column grid, 3 columns at 40rem (six fixed sections form even rows), sticky
+  vertical list at 64rem. `.comparison-pair` selects auto-fit at a 10rem minimum.
 
 Logical CSS supports inline-direction changes, but chart angular direction and drag
 resizer semantics are not claimed to be a complete localized/RTL product experience.

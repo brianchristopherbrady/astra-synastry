@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Compass, GripVertical, Pencil, Plus, Save, Trash2, UserCheck, UserPlus, Users, Orbit, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { GripVertical, Pencil, Plus, Save, Trash2, UserCheck, UserPlus, Users, Orbit, MapPin } from "lucide-react";
 import type { Ayanamsa, ReadingStyle, RelationshipType, ZodiacMode } from "@astro/shared";
 import { peopleApi, type PersonRecord } from "../api/peopleApi.js";
 import { synastryApi } from "../api/synastryApi.js";
@@ -297,9 +297,6 @@ export default function DashboardPage() {
                     {p.locationName && <span className="person-meta"><MapPin size={12} aria-hidden="true" />{p.locationName}</span>}
                   </div>
                   <div className="person-actions">
-                    <Link className="btn-secondary" to={`/chart/${p.id}`} draggable={false} aria-label={`Open ${p.name}'s natal chart`}>
-                      <Compass size={16} aria-hidden="true" /> Natal chart
-                    </Link>
                     <button
                       className="icon-button"
                       aria-pressed={inReading}

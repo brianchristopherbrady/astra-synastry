@@ -30,7 +30,7 @@ function renderDashboard() {
 describe("Workspace person dialogs", () => {
   it("keeps saved charts prominent and preserves a draft when the dialog is dismissed", async () => {
     renderDashboard();
-    expect(await screen.findByRole("link", { name: "Open Alex Morgan's natal chart" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Alex Morgan" })).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
     const trigger = screen.getByRole("button", { name: "Add a person" });
     trigger.focus();
@@ -70,10 +70,9 @@ describe("Workspace person dialogs", () => {
   it("keeps the card inert and edits a person from a dedicated button", async () => {
     vi.mocked(peopleApi.update).mockResolvedValue({ ...person, name: "Alex M." });
     renderDashboard();
-    const chartLink = await screen.findByRole("link", { name: "Open Alex Morgan's natal chart" });
-    expect(chartLink.getAttribute("href")).toBe("/chart/example");
+    expect(await screen.findByRole("heading", { name: "Alex Morgan" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Alex Morgan" }).closest("a, button")).toBeNull();
-    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit Alex Morgan" }));
     const dialog = screen.getByRole("dialog", { name: "Edit Alex Morgan" });
